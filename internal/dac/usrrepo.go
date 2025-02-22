@@ -55,8 +55,9 @@ func (u *UserRepo) GetCredentials(ctx context.Context, email string) (interface{
 }
 
 func (u *UserRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.User, error) {
+	// need to add a company or lessor identifier
 	var usrs []model.User
-	err := u.BdB.NewSelect().Model(&usrs).Limit(u.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+	err := u.BdB.NewSelect().Model(&usrs).Limit(u.Limit).Offset(10*(fltr.Page-1)).Scan(ctx, usrs)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "User", Err: err}
@@ -111,10 +112,10 @@ func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	rslt, err := tx.NewUpdate().Model(&pf).Where("? = ?", bun.Ident("uid"), pf.Uid).Returning("*").Exec(ctx)
+	rslt, err := tx.NewUpdate().Model(&pf).Where("? = ?", bun.Ident("uid"), pf.Uid).Returning("*").Exec(ctx, &pf)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
-			return model.User{}, err
+			return nil, err
 		}
 		return nil, ErrUpdateFailed{Model: "User", Err: err}
 	}
@@ -122,6 +123,9 @@ func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {
 	if err = tx.Commit(); err != nil {
 		return model.User{}, err
 	}
+
+	log.Printf("user result from update %v", pf)
+	log.Printf("result from usr update %v", rslt)
 
 	return rslt, nil
 }

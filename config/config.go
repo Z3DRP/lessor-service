@@ -38,7 +38,6 @@ type Configurations struct {
 	ZypherSettings ZypherConfig  `mapstructure:"zysettings"`
 	ZEmailSettings ZEmailConfig  `mapstructure:"zemailsettings"`
 	AuthKey        string        `mapstructure:"authkey"`
-	AwsS3Key       string        `mapstructure:"awsS3Key"`
 	Salty          string        `mapstructure:"salty"`
 }
 
@@ -159,23 +158,6 @@ func GetAuthToken() ([]byte, error) {
 		return nil, errors.New(emsg)
 	}
 	return []byte(configs.AuthKey), nil
-}
-
-func GetS3Key() (string, error) {
-	if err := setupConfig(); err != nil {
-		log.Printf("failed s3 setup %v\n", err)
-		return "", err
-	}
-
-	var configs Configurations
-
-	if err := viper.ReadInConfig(); err != nil {
-		emsg := fmt.Sprintf("error reading config file, %v", err)
-		log.Printf("viper read config err: %v\n", err)
-		return "", errors.New(emsg)
-	}
-
-	return configs.AwsS3Key, nil
 }
 
 func GetSalty() (string, error) {

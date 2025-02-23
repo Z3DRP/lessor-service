@@ -4,13 +4,15 @@
 My capstone project for my Bachelors Degree. This is part of a Property Management app. It's main functionality is maintence work scheduling, automation of finances, and payment integration.
 
 # Quickstart 
-Not setup yet more to come....
+## The easiest way to run the server is to run it with docker
+- **but** I have to finish setting that up so..
 
- ##  __*No step yet but probably something about starting Docker*__ 
+## Setup server for development mode
+- if you my teacher I will give you access to the .env and config.yml files
+- add the .env file to the root of the project
+- add the config.yml file to the config dir in the root directory
 
-```
-docker pull redis
-docker run --name redis-service -d -p 6379:6379 redis
-```
+## Run the server in development mode
+- run `make run-dev`
+- the config sets the server to run on port :8087
 
-- ## __*Final step about something*__

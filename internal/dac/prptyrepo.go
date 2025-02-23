@@ -8,26 +8,26 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/uptrace/bun"
 )
 
 type PropertyRepo struct {
 	Store
-	Limit int
 }
 
 func InitPrptyRepo(db Store) PropertyRepo {
-return PropertyRepo{
+	return PropertyRepo{
 		Store: db,
-		Limit: DefaultRecordLimit,
 	}
 }
 
-func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (interface{}, error) {
+func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var prpty model.Property
+	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := p.BdB.NewSelect().Model(&prpty).
-		Where("? = ?", bun.Ident("pid"), fltr.Identifier).Limit(p.Limit).Offset(10*(fltr.Page-1)).Scan(ctx, &prpty)
-	
+		Where("? = ?", bun.Ident("pid"), fltr.Identifier).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &prpty)
+
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Property", Err: err}
 	}
@@ -35,10 +35,11 @@ func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (inte
 	return prpty, nil
 }
 
-func (p *PropertyRepo) FetchAll(ctx context.Context, fltr filters.UuidFilter) (model.Property[], error) {
+func (p *PropertyRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Property, error) {
 	var propertys []model.Property
-	err := p.BdB.NewSelect().Model(&propertys).Limit(p.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx, &propertys)
-	
+	limit := utils.DeterminRecordLimit(fltr.Limit)
+	err := p.BdB.NewSelect().Model(&propertys).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &propertys)
+
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Property", Err: err}
 	}
@@ -48,7 +49,7 @@ func (p *PropertyRepo) FetchAll(ctx context.Context, fltr filters.UuidFilter) (m
 
 func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, error) {
 	property, ok := prpty.(*model.Property)
-	
+
 	if !ok {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
@@ -59,10 +60,9 @@ func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, erro
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	err = tx.NewInsert().Model(property).Returning("*")
+	err = tx.NewInsert().Model(property).Scan(ctx, property)
 
 	if err != nil {
-		e := err
 		log.Printf("db err: %v", err)
 		if err = tx.Rollback(); err != nil {
 			return model.Property{}, err
@@ -74,7 +74,7 @@ func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, erro
 		log.Printf("failed to commit tx %v", err)
 		return model.Property{}, err
 	}
-	
+
 	return property, nil
 }
 
@@ -108,9 +108,9 @@ func (p *PropertyRepo) Update(ctx context.Context, prpty any) (interface{}, erro
 
 func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 	property, ok := prpty.(model.Property)
-	
+
 	if !ok {
-		return cmerr.ErrUnexpectedData{Wanted: model.Property, Got: prpty}
+		return cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
 	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
@@ -119,7 +119,7 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 		return ErrTransactionStartFailed{Err: err}
 	}
 
-	_, err := tx.NewDelete().Model(&property).Where("? = ?", bun.Ident("pid"), property.Pid).Exec(ctx)
+	_, err = tx.NewDelete().Model(&property).Where("? = ?", bun.Ident("pid"), property.Pid).Exec(ctx)
 
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
@@ -133,4 +133,3 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 	}
 	return nil
 }
-

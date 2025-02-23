@@ -9,6 +9,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/uptrace/bun"
 )
 
@@ -20,14 +21,14 @@ type UserRepo struct {
 func InitUsrRepo(db Store) UserRepo {
 	return UserRepo{
 		Store: db,
-		Limit: DefaultRecordLimit,
 	}
 }
 
-func (u *UserRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (interface{}, error) {
+func (u *UserRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var usr model.User
+	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := u.BdB.NewSelect().Model(&usr).
-		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(u.Limit).Offset(10*(fltr.Page-1)).Scan(ctx, &usr)
+		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &usr)
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "User", Err: err}
 	}
@@ -57,7 +58,8 @@ func (u *UserRepo) GetCredentials(ctx context.Context, email string) (interface{
 func (u *UserRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.User, error) {
 	// need to add a company or lessor identifier
 	var usrs []model.User
-	err := u.BdB.NewSelect().Model(&usrs).Limit(u.Limit).Offset(10*(fltr.Page-1)).Scan(ctx, usrs)
+	limit := utils.DeterminRecordLimit(fltr.Limit)
+	err := u.BdB.NewSelect().Model(&usrs).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, usrs)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "User", Err: err}
@@ -85,13 +87,12 @@ func (u *UserRepo) Insert(ctx context.Context, usr any) (interface{}, error) {
 		Returning("uid, username, first_name, last_name, profile_type").Scan(ctx, user)
 
 	if err != nil {
-		e := err
 		log.Printf("db err: %v", err)
 		if err = tx.Rollback(); err != nil {
 			log.Printf("db rollback err: %v", err)
 			return model.User{}, err
 		}
-		return nil, ErrInsertFailed{Model: "User", Err: e}
+		return nil, ErrInsertFailed{Model: "User", Err: err}
 	}
 
 	if err = tx.Commit(); err != nil {

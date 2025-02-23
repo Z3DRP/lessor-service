@@ -92,6 +92,7 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
 	default:
 		var payload dtos.UserSignupRequest
+		w.Header().Set("Content-Type", "application/json")
 
 		if err := utils.ParseJSON(r, &payload); err != nil {
 			u.logger.MustDebug("failed to parse request body")
@@ -150,6 +151,8 @@ func (u UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
 	default:
 		var payload dtos.UserSignupRequest
+		w.Header().Set("Content-Type", "application/json")
+
 		if err := utils.ParseJSON(r, payload); err != nil {
 			u.logger.MustDebug(fmt.Sprintf("failed to parse request body, %v", err))
 			utils.WriteErr(w, http.StatusBadRequest, err)
@@ -199,7 +202,7 @@ func (u UserHandler) HandleGetUsers(w http.ResponseWriter, r *http.Request) {
 		usrs, err := u.GetUsrs(r.Context(), fltr)
 		if err != nil {
 			u.logger.MustDebug(fmt.Sprintf("database err, %v", err))
-			utils.WriteErr(w, http.StatusBadRequest, err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -251,6 +254,7 @@ func (u UserHandler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	select {
 	case <-r.Context().Done():
 		timeoutErr := utils.ErrRequestTimeout{Request: r}
@@ -258,7 +262,7 @@ func (u UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
 	default:
 		var payload dtos.UserRequest
-		if err := utils.ParseJSON(r, payload); err != nil {
+		if err := utils.ParseJSON(r, &payload); err != nil {
 			u.logger.MustDebug(fmt.Sprintf("failed to parse user dto from request, %v", err))
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
@@ -290,6 +294,7 @@ func (u UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	select {
 	case <-r.Context().Done():
 		timeoutErr := utils.ErrRequestTimeout{Request: r}

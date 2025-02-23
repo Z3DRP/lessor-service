@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/google/uuid"
 )
 
@@ -69,6 +70,22 @@ func NewPropertyModRequest(id string, p PropertyRequest) PropertyModificationReq
 	return PropertyModificationRequest{
 		Pid:     id,
 		Request: p,
+	}
+}
+
+type PropertyResponse struct {
+	Property model.Property
+	ImageUrl string
+}
+
+func (p *PropertyResponse) Valiate() error {
+	return nil
+}
+
+func NewPropertyResposne(p model.Property, url string) PropertyResponse {
+	return PropertyResponse{
+		Property: p,
+		ImageUrl: url,
 	}
 }
 

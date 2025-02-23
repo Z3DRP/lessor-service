@@ -18,7 +18,6 @@ type ProfileRepo struct {
 func InitPrflRepo(db Store) ProfileRepo {
 	return ProfileRepo{
 		Store: db,
-		Limit: DefaultRecordLimit,
 	}
 }
 

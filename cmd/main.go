@@ -14,6 +14,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/routes"
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
 	"github.com/Z3DRP/lessor-service/internal/services/prfl"
+	"github.com/Z3DRP/lessor-service/internal/services/property"
 	"github.com/Z3DRP/lessor-service/internal/services/usr"
 	"github.com/sirupsen/logrus"
 )
@@ -43,18 +44,32 @@ func run() error {
 	}
 
 	dbStore := dac.InitStore(dbConnection)
-	alsrService := factories.ServiceFactory("Alessor", dbStore, crane.DefaultLogger)
-	alsrHandler, err := factories.HandlerFactory("Alessor", alsrService)
+	// creating alessor service will never return an err so ignore it
+	alsrService, _ := factories.ServiceFactory("Alessor", dbStore, crane.DefaultLogger)
+	alsrHandler, err := factories.HandlerFactory(alsrService.ServiceName(), alsrService)
 
 	if err != nil {
 		return err
 	}
 
-	usrService := factories.ServiceFactory("User", dbStore, crane.DefaultLogger)
-	usrHandler, err := factories.HandlerFactory("User", usrService)
+	// creating usr service will never return err so ignore it
+	usrService, _ := factories.ServiceFactory("User", dbStore, crane.DefaultLogger)
+	usrHandler, err := factories.HandlerFactory(usrService.ServiceName(), usrService)
 
 	if err != nil {
 		return err
+	}
+
+	prptyService, err := factories.ServiceFactory("Property", dbStore, crane.DefaultLogger)
+
+	if err != nil {
+		return fmt.Errorf("failed to create property service %v", err)
+	}
+
+	prptyHandler, err := factories.HandlerFactory(prptyService.ServiceName(), prptyService)
+
+	if err != nil {
+		return fmt.Errorf("failed to create property handler %v", err)
 	}
 
 	aHandler, ok := alsrHandler.(alssr.AlessorHandler)
@@ -69,7 +84,13 @@ func run() error {
 		return cmerr.ErrUnexpectedData{Wanted: prfl.ProfileHandler{}, Got: usrHandler}
 	}
 
-	zserver, err := routes.NewServer(&apiConfig.ZServer, aHandler, uHandler)
+	pHandler, ok := prptyHandler.(property.PropertyHandler)
+
+	if !ok {
+		return cmerr.ErrUnexpectedData{Wanted: property.PropertyHandler{}, Got: prptyHandler}
+	}
+
+	zserver, err := routes.NewServer(&apiConfig.ZServer, aHandler, uHandler, pHandler)
 
 	if err != nil {
 		crane.DefaultLogger.MustDebug(fmt.Sprintf("fatal error creating server, %v", err))

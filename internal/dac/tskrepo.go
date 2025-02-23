@@ -7,6 +7,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/uptrace/bun"
 )
 
@@ -18,14 +19,14 @@ type TaskRepo struct {
 func InitTskRepo(db Store) *TaskRepo {
 	return &TaskRepo{
 		Store: db,
-		Limit: DefaultRecordLimit,
 	}
 }
 
-func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.PrimaryKeyFilter) (interface{}, error) {
+func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var tsk model.Task
+	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := t.BdB.NewSelect().Model(&tsk).
-		Where("? = ?", bun.Ident("id"), fltr.PK).Limit(t.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+		Where("? = ?", bun.Ident("tid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Task", Err: err}
@@ -34,9 +35,10 @@ func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.PrimaryKeyFilter) (in
 	return tsk, nil
 }
 
-func (t TaskRepo) FetchAll(ctx context.Context, pg int) ([]model.Task, error) {
+func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Task, error) {
 	var tsks []model.Task
-	err := t.BdB.NewSelect().Model(&tsks).Limit(t.Limit).Offset(10 * (pg - 1)).Scan(ctx)
+	limit := utils.DeterminRecordLimit(fltr.Limit)
+	err := t.BdB.NewSelect().Model(&tsks).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Task", Err: err}

@@ -31,7 +31,7 @@ func NewAlsrService(repo dac.AlessorRepo, logr *crane.Zlogrus) AlessorService {
 }
 
 func (a *AlessorService) GetAlsr(ctx context.Context, fltr filters.Filterer) (model.Alessor, error) {
-	uidFltr, ok := fltr.(filters.UuidFilter)
+	uidFltr, ok := fltr.(filters.Filter)
 	if !ok {
 		return model.Alessor{}, filters.NewFailedToMakeFilterErr("uuid")
 	}

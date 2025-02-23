@@ -8,8 +8,6 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/filters"
 )
 
-var DefaultRecordLimit = 10
-
 type Fetcher interface {
 	Fetch(context.Context, filters.Filterer) (interface{}, error)
 }

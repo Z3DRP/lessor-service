@@ -30,6 +30,7 @@ type Property struct {
 	IsAvailable   bool                   `bun:",nullzero"`
 	Status        PropertyStatus         `bun:"type:property_status,default:'unknown'"`
 	Notes         string                 `bun:"type:varchar(255),nullzero"`
+	Image         string                 `bun:"type:varchar(255),nullzero"`
 	TaxRate       float64                `bun:"type:numeric(5,2),nullzero"`
 	TaxAmountDue  float64                `bun:"type:numeric(10,2)"`
 	MaxOccupancy  int                    `bun:",nullzero"`

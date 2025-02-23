@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	EmlRgx  = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
-	PhneRgx = regexp.MustCompile(`^\d{3}-\d{3}-\d{4}$/`)
+	EmlRgx             = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+	PhneRgx            = regexp.MustCompile(`^\d{3}-\d{3}-\d{4}$/`)
+	DefaultRecordLimit = 10
 )
 
 func WriteTimeoutResponse(w http.ResponseWriter) error {
@@ -84,4 +85,12 @@ func ParseUuid(str string) uuid.UUID {
 	}
 
 	return uid
+}
+
+func DeterminRecordLimit(limt int) int {
+	if limt <= 0 {
+		return DefaultRecordLimit
+	}
+
+	return limt
 }

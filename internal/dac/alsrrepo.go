@@ -7,6 +7,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/uptrace/bun"
 )
 
@@ -18,14 +19,14 @@ type AlessorRepo struct {
 func InitAlsrRepo(db Store) AlessorRepo {
 	return AlessorRepo{
 		Store: db,
-		Limit: DefaultRecordLimit,
 	}
 }
 
-func (a *AlessorRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (interface{}, error) {
+func (a *AlessorRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var alsr model.Alessor
+	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := a.BdB.NewSelect().Model(&alsr).
-		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(a.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Alessor", Err: err}
@@ -36,7 +37,8 @@ func (a *AlessorRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (inter
 
 func (a *AlessorRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Alessor, error) {
 	var alsrs []model.Alessor
-	err := a.BdB.NewSelect().Model(&alsrs).Limit(a.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+	limit := utils.DeterminRecordLimit(fltr.Limit)
+	err := a.BdB.NewSelect().Model(&alsrs).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Alessor", Err: err}
 	}

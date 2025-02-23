@@ -9,7 +9,7 @@ type ErrRequestTimeout struct {
 	Request *http.Request
 }
 
-func (e *ErrRequestTimeout) Error() string {
+func (e ErrRequestTimeout) Error() string {
 	return fmt.Sprintf("request: %s method: %s timed out", e.Request.URL, e.Request.Method)
 }
 

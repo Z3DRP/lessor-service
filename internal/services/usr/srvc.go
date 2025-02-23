@@ -67,7 +67,7 @@ func (u UserService) AuthenticateUser(ctx context.Context, fltr filters.Filterer
 }
 
 func (p UserService) GetUsr(ctx context.Context, fltr filters.Filterer) (model.User, error) {
-	uidFltr, ok := fltr.(filters.UuidFilter)
+	uidFltr, ok := fltr.(filters.Filter)
 	if !ok {
 		return model.User{}, filters.NewFailedToMakeFilterErr("uuid filter")
 	}

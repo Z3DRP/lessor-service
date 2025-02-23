@@ -16,18 +16,20 @@ type Filterer interface {
 type Filter struct {
 	Identifier string
 	Page       int
+	Limit      int
 }
 
-func NewFilter(idnfr string, pg int) Filter {
+func NewFilter(idnfr string, pg, lmt int) Filter {
 	return Filter{
 		Identifier: idnfr,
 		Page:       pg,
+		Limit:      lmt,
 	}
 }
 
 func GenFilter(r *http.Request) (Filter, error) {
 	query := r.URL.Query()
-	id := r.PathValue("identifier")
+	id := r.PathValue("id")
 
 	if id == "" {
 		return Filter{}, errors.New("failed to generate primary key filter, primary key not found in request")
@@ -39,7 +41,12 @@ func GenFilter(r *http.Request) (Filter, error) {
 		return Filter{}, err
 	}
 
-	fltr := Filter{Identifier: id, Page: page}
+	lmt, err := strconv.Atoi(query.Get("limit"))
+	if err != nil {
+		return Filter{}, err
+	}
+
+	fltr := Filter{Identifier: id, Page: page, Limit: lmt}
 	err = fltr.Validate()
 
 	if err != nil {
@@ -57,6 +64,14 @@ func (f Filter) Validate() error {
 
 	if f.Page >= 1000 {
 		return errors.New("invalid page, cannot paginate 1000 or more results")
+	}
+
+	if f.Limit <= 0 {
+		return errors.New("invalid limit, must be positive number")
+	}
+
+	if f.Limit > 25 {
+		return errors.New("invalid limit, must be less than 25")
 	}
 
 	return nil
@@ -102,6 +117,9 @@ func GenUuidFilter(r *http.Request) (UuidFilter, error) {
 	}
 
 	return ufltr, nil
+}
+
+type PropertyFilter struct {
 }
 
 type PrimaryKeyFilter struct {

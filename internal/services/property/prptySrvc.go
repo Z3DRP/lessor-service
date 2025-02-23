@@ -2,7 +2,9 @@ package property
 
 import (
 	"context"
+	"strings"
 
+	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/crane"
 	"github.com/Z3DRP/lessor-service/internal/dac"
@@ -10,52 +12,64 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/internal/services"
-	"github.com/Z3DRP/lessor-service/internal/services/property"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/google/uuid"
 )
 
 type PropertyService struct {
-	repo   dac.PropertyRepo
-	logger *crane.Zlogrus
+	repo    dac.PropertyRepo
+	logger  *crane.Zlogrus
+	s3Actor api.S3Actor
 }
 
 func (p PropertyService) ServiceName() string {
 	return "Property"
 }
 
-func NewPropertyService(repo dac.PropertyRepo, logr *crane.Zlogrus) *PropertyService {
+func NewPropertyService(repo dac.PropertyRepo, actr api.S3Actor, logr *crane.Zlogrus) *PropertyService {
 	return &PropertyService{
-		repo:   repo,
-		logger: logr,
+		repo:    repo,
+		s3Actor: actr,
+		logger:  logr,
 	}
 }
 
-func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer) (model.Property, error) {
-	uidFilter, ok := fltr.(filters.UuidFilter)
+func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer) (dtos.PropertyResponse, error) {
+	uidFilter, ok := fltr.(filters.Filter)
 
 	if !ok {
-		return model.Property{}, filters.NewFailedToMakeFilterErr("uuid filter")
+		return dtos.PropertyResponse{}, filters.NewFailedToMakeFilterErr("uuid filter")
 	}
 
 	prpty, err := p.repo.Fetch(ctx, uidFilter)
 
 	if err != nil {
-		return model.Property{}, err
+		return dtos.PropertyResponse{}, err
 	}
 
 	property, ok := prpty.(model.Property)
 
 	if !ok {
-		return model.Property{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		return dtos.PropertyResponse{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	return property, nil
+	var reqDto dtos.PropertyResponse
+	if property.Image == "" {
+		imgUrl, err := p.s3Actor.Get(ctx, property.Image)
+
+		if err != nil {
+			return dtos.PropertyResponse{}, err
+		}
+
+		reqDto = dtos.NewPropertyResposne(property, imgUrl)
+	}
+
+	return reqDto, nil
 }
 
-func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filterer) ([]model.Property, error) {
+func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filterer) ([]dtos.PropertyResponse, error) {
 	// need to add a uuid filter for all repos because that way it limits the results in multi tenant db
-	filter, ok := fltr.(filters.UuidFilter)
+	filter, ok := fltr.(filters.Filter)
 
 	if !ok {
 		return nil, filters.NewFailedToMakeFilterErr("uuid filter")
@@ -67,7 +81,30 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		return nil, err
 	}
 
-	return properties, nil
+	propertyImgs := make(map[string]string)
+	imageUrls, err := p.s3Actor.GetAll(ctx, filter.Identifier)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for key, url := range imageUrls {
+		parts := strings.Split(key, "/")
+		if len(parts) < 3 {
+			continue
+		}
+
+		propertyImgs[key] = url
+	}
+
+	var propResponses []dtos.PropertyResponse
+	for _, prop := range properties {
+		if url, found := propertyImgs[prop.Pid.String()]; found {
+			propResponses = append(propResponses, dtos.NewPropertyResposne(prop, url))
+		}
+	}
+
+	return propResponses, nil
 }
 
 func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.PropertyRequest) (*model.Property, error) {
@@ -147,16 +184,16 @@ func newPropertyRequest(data dtos.PropertyRequest) *model.Property {
 func newPropertyModRequest(data dtos.PropertyModificationRequest) *model.Property {
 	return &model.Property{
 		Pid:           utils.ParseUuid(data.Pid),
-		AlessorId:     utils.ParseUuid(data.AlessorId),
-		Address:       data.Address,
-		Bedrooms:      data.Bedrooms,
-		Baths:         data.Baths,
-		SquareFootage: data.SquareFt,
-		IsAvailable:   data.Available,
-		Status:        model.PropertyStatus(data.Status),
-		Notes:         data.Notes,
-		TaxRate:       data.TaxRate,
-		TaxAmountDue:  data.TaxAmountDue,
-		MaxOccupancy:  data.MaxOccupancy,
+		AlessorId:     utils.ParseUuid(data.Request.AlessorId),
+		Address:       data.Request.Address,
+		Bedrooms:      data.Request.Bedrooms,
+		Baths:         data.Request.Baths,
+		SquareFootage: data.Request.SquareFt,
+		IsAvailable:   data.Request.Available,
+		Status:        model.PropertyStatus(data.Request.Status),
+		Notes:         data.Request.Notes,
+		TaxRate:       data.Request.TaxRate,
+		TaxAmountDue:  data.Request.TaxAmountDue,
+		MaxOccupancy:  data.Request.MaxOccupancy,
 	}
 }

@@ -14,15 +14,16 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/crane"
 	"github.com/Z3DRP/lessor-service/internal/middlewares"
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
+	"github.com/Z3DRP/lessor-service/internal/services/property"
 	"github.com/Z3DRP/lessor-service/internal/services/usr"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func NewServer(sconfig *config.ZServerConfig, alsrHndlr alssr.AlessorHandler, usrHndlr usr.UserHandler) (*http.Server, error) {
+func NewServer(sconfig *config.ZServerConfig, alsrHndlr alssr.AlessorHandler, usrHndlr usr.UserHandler, prptyHandler property.PropertyHandler) (*http.Server, error) {
 
 	mux := http.NewServeMux()
-	registerRoutes(mux, alsrHndlr, usrHndlr)
+	registerRoutes(mux, alsrHndlr, usrHndlr, prptyHandler)
 
 	mwChain := middlewares.MiddlewareChain(handlePanic, loggerMiddleware, headerMiddleware, contextMiddleware)
 	server := &http.Server{
@@ -35,18 +36,24 @@ func NewServer(sconfig *config.ZServerConfig, alsrHndlr alssr.AlessorHandler, us
 	return server, nil
 }
 
-func registerRoutes(mux *http.ServeMux, aHndlr alssr.AlessorHandler, uHndlr usr.UserHandler) {
+func registerRoutes(mux *http.ServeMux, aHndlr alssr.AlessorHandler, uHndlr usr.UserHandler, pHndlr property.PropertyHandler) {
 	mux.HandleFunc("POST /sign-in", uHndlr.HandleLogin)
 	mux.HandleFunc("POST /sign-up", uHndlr.HandleSignUp)
 	mux.HandleFunc("GET /alessor", aHndlr.HandleGetAlessors)
 	mux.HandleFunc("GET /alessor/{id}", aHndlr.HandleGetAlessor)
-	mux.HandleFunc("POST /alessor/{id}", aHndlr.HandleUpdateAlessor)
+	mux.HandleFunc("POST /alessor/{id}", aHndlr.HandleCreateAlessor)
+	mux.HandleFunc("PUT /alessor/{id}", aHndlr.HandleUpdateAlessor)
 	mux.HandleFunc("DELETE /alessor/{id}", aHndlr.HandleDeleteAlessor)
 	mux.HandleFunc("GET /user", uHndlr.HandleGetUsers) // admin or alessors route only
 	mux.HandleFunc("GET /user/{id}", uHndlr.HandleGetUser)
-	mux.HandleFunc("POST /user/{id}", uHndlr.HandleUpdateUser)
+	mux.HandleFunc("POST /user/{id}", uHndlr.HandleCreateUser)
+	mux.HandleFunc("PUT /user/{id}", uHndlr.HandleUpdateUser)
 	mux.HandleFunc("DELETE /user/{id}", uHndlr.HandleDeleteUser)
-
+	mux.HandleFunc("GET /property", pHndlr.HandleGetProperty)
+	mux.HandleFunc("GET /property/{id}", pHndlr.HandleGetProperty)
+	mux.HandleFunc("POST /property", pHndlr.HandleCreateProperty)
+	mux.HandleFunc("PUT /property/{id}", pHndlr.HandleUpdateProperty)
+	//mux.HandleFunc("DELETE /property/{id}", pHndlr.HandleDeleteProperty)
 }
 
 // make this unexported after jwt in use

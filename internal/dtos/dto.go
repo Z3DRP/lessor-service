@@ -5,7 +5,6 @@ import (
 	"math"
 	"net/http"
 
-	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/google/uuid"
 )
 
@@ -17,9 +16,18 @@ type DeleteRequest struct {
 	Identifer string
 }
 
+type ErrMissingId struct {
+	Obj       string
+	FieldName string
+}
+
+func (e ErrMissingId) Error() string {
+	return fmt.Sprintf("%v is missing the id field %v", e.Obj, e.FieldName)
+}
+
 func (d DeleteRequest) Validate() error {
 	if d.Identifer == "" {
-		return utils.ErrMissingId{Obj: "profile request dto", FieldName: "uid"}
+		return ErrMissingId{Obj: "profile request dto", FieldName: "uid"}
 	}
 
 	if !IsValidUUID(d.Identifer) {
@@ -56,10 +64,6 @@ func IsValidUUID(uid string) bool {
 
 func IsInBufferRange(val interface{}) bool {
 	switch v := val.(type) {
-	case int64:
-		return v <= math.MaxInt64 && v >= math.MinInt64
-	case int32:
-		return v <= math.MaxInt32 && v >= math.MinInt32
 	case int:
 		return v <= math.MaxInt && v >= math.MinInt
 	}

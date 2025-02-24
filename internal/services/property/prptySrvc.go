@@ -12,6 +12,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/internal/services"
+	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/google/uuid"
 )
@@ -53,15 +54,15 @@ func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer)
 		return dtos.PropertyResponse{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	var reqDto dtos.PropertyResponse
-	if property.Image == "" {
-		imgUrl, err := p.s3Actor.Get(ctx, property.Image)
+	reqDto := dtos.PropertyResponse{Property: property}
+	if property.Image != "" {
+		fileUrl, err := p.s3Actor.Get(ctx, property.AlessorId.String(), property.Pid.String(), property.Image)
 
 		if err != nil {
 			return dtos.PropertyResponse{}, err
 		}
 
-		reqDto = dtos.NewPropertyResposne(property, imgUrl)
+		reqDto = dtos.NewPropertyResposne(property, &fileUrl)
 	}
 
 	return reqDto, nil
@@ -100,14 +101,14 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 	var propResponses []dtos.PropertyResponse
 	for _, prop := range properties {
 		if url, found := propertyImgs[prop.Pid.String()]; found {
-			propResponses = append(propResponses, dtos.NewPropertyResposne(prop, url))
+			propResponses = append(propResponses, dtos.NewPropertyResposne(prop, &url))
 		}
 	}
 
 	return propResponses, nil
 }
 
-func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.PropertyRequest) (*model.Property, error) {
+func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.PropertyRequest, fileData *ztype.FileUploadDto) (*model.Property, error) {
 	property := newPropertyRequest(pdata)
 	var err error
 
@@ -115,6 +116,16 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.Property
 
 	if err != nil {
 		return nil, err
+	}
+
+	if fileData != nil {
+		fileName, err := p.s3Actor.Upload(ctx, property.AlessorId.String(), property.Pid.String(), fileData)
+
+		if err != nil {
+			return nil, err
+		}
+
+		property.Image = fileName
 	}
 
 	newPrpty, err := p.repo.Insert(ctx, property)
@@ -132,11 +143,21 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.Property
 	return prpty, nil
 }
 
-func (p PropertyService) ModifyProperty(ctx context.Context, pdto dtos.PropertyModificationRequest) (model.Property, error) {
+func (p PropertyService) ModifyProperty(ctx context.Context, pdto dtos.PropertyModificationRequest, fileData *ztype.FileUploadDto) (model.Property, error) {
 	prpty := newPropertyModRequest(pdto)
 
 	if prpty.Pid == uuid.Nil {
 		return model.Property{}, services.ErrInvalidRequest{ServiceType: p.ServiceName(), RequestType: "Upate", Err: nil}
+	}
+
+	if fileData != nil {
+		fileName, err := p.s3Actor.Upload(ctx, prpty.AlessorId.String(), prpty.Pid.String(), fileData)
+
+		if err != nil {
+			return model.Property{}, err
+		}
+
+		prpty.Image = fileName
 	}
 
 	updatePrpty, err := p.repo.Update(ctx, prpty)

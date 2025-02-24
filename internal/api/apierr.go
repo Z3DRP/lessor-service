@@ -7,7 +7,7 @@ type ErrInvalidBucketDir struct {
 }
 
 func (e ErrInvalidBucketDir) Error() string {
-	return fmt.Sprint("invalid bucket directory %v does not exist", e.InvalidDir)
+	return fmt.Sprintf("invalid bucket directory %v does not exist", e.InvalidDir)
 }
 
 type ErrFileRead struct {

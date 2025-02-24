@@ -75,14 +75,14 @@ func NewPropertyModRequest(id string, p PropertyRequest) PropertyModificationReq
 
 type PropertyResponse struct {
 	Property model.Property
-	ImageUrl string
+	ImageUrl *string
 }
 
 func (p *PropertyResponse) Valiate() error {
 	return nil
 }
 
-func NewPropertyResposne(p model.Property, url string) PropertyResponse {
+func NewPropertyResposne(p model.Property, url *string) PropertyResponse {
 	return PropertyResponse{
 		Property: p,
 		ImageUrl: url,

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -76,42 +77,29 @@ func NewS3Actor(ctx context.Context, dir string) (S3Actor, error) {
 	}, nil
 }
 
-func (a *S3Actor) UplaodDir(ownerId, objId string) string {
+func (a *S3Actor) UplaodDir(ownerId, objId string) (string, error) {
 	objDir := determineDir(a.dir)
-	if objDir == "" {
-		return ""
-	}
-	// prefix for bucket dir: obj/owner-id/obj-id
-	return filepath.Join(objDir, ownerId, objId)
-}
-
-func (a S3Actor) Upload(r *http.Request, ownerId, objId string) (string, error) {
-	err := r.ParseMultipartForm(maxSize)
-
-	if err != nil {
-		return "", ErrMaxSize{Err: err}
-	}
-
-	file, header, err := r.FormFile("image")
-
-	if err != nil {
-		return "", ErrFileRead{Err: err}
-	}
-
-	defer file.Close()
-	objDir := a.UplaodDir(ownerId, objId)
-
 	if objDir == "" {
 		return "", ErrInvalidBucketDir{InvalidDir: a.dir}
 	}
+	// prefix for bucket dir: obj/owner-id/obj-id
+	return filepath.Join(objDir, ownerId, objId), nil
+}
+
+func (a S3Actor) Upload(ctx context.Context, ownerId, objId string, file *ztype.FileUploadDto) (string, error) {
+	objDir, err := a.UplaodDir(ownerId, objId)
+
+	if err != nil {
+		return "", err
+	}
 
 	// final bucket dir obj/lessor-id/obj-id/tstamp-Filename.ext
-	tstampFilename := fmt.Sprintf("%v-%v", time.Now().UnixNano(), header.Filename)
+	tstampFilename := fmt.Sprintf("%v-%v", time.Now().UnixNano(), file.Header.Filename)
 	fileNameKey := filepath.Join(objDir, tstampFilename)
-	_, err = a.client.PutObject(r.Context(), &s3.PutObjectInput{
+	_, err = a.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileNameKey),
-		Body:   file,
+		Body:   file.File,
 		ACL:    "public-read",
 	})
 
@@ -119,23 +107,23 @@ func (a S3Actor) Upload(r *http.Request, ownerId, objId string) (string, error) 
 		return "", ErrFileObjUpload{Err: err}
 	}
 
-	return fileNameKey, nil
+	return tstampFilename, nil
 }
 
-func (a S3Actor) GetAll(ctx context.Context, lessorId string) (map[string]string, error) {
+func (a S3Actor) GetAll(ctx context.Context, ownerId string) (map[string]string, error) {
 	// said to do full key name ? bucket /folder/fileName.ext ?
 	// result, err := a.client.GetObject(ctx, &s3.GetObjectInput{
 	// 	Bucket: aws.String(bucket),
 	// 	Key:    aws.String(fileName),
 	// })
 
-	// in theory this should get everything say under properties/lessorId/
+	// in theory this should get everything say under properties/ownerId/
 	objDir := determineDir(a.dir)
 	if objDir == "" {
 		return nil, ErrInvalidBucketDir{InvalidDir: a.dir}
 	}
 
-	fileKey := filepath.Join(objDir, lessorId)
+	fileKey := filepath.Join(objDir, ownerId)
 
 	res, err := a.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
@@ -164,18 +152,25 @@ func (a S3Actor) GetAll(ctx context.Context, lessorId string) (map[string]string
 	return imgs, nil
 }
 
-func (s *S3Actor) Get(ctx context.Context, fileKey string) (string, error) {
+func (s *S3Actor) Get(ctx context.Context, ownerId, objId string, fileKey string) (string, error) {
 	psClient := s3.NewPresignClient(s.client)
 
 	// the obj dir path is obj/owner-id/obj-id/filename
 	// which is saved in the db field for obj which is passed into func
+	objDir, err := s.UplaodDir(ownerId, objId)
+
+	if err != nil {
+		return "", err
+	}
+
+	fileObjKey := filepath.Join(objDir, fileKey)
 	psUrl, err := psClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(fileKey),
+		Key:    aws.String(fileObjKey),
 	}, s3.WithPresignExpires(expireyHrs*time.Hour))
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create image url %v", err)
+		return "", fmt.Errorf("failed to create image url for file %v", err)
 	}
 
 	return psUrl.URL, nil

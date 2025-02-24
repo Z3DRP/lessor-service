@@ -2,12 +2,15 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"regexp"
 	"unicode/utf8"
 
+	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/google/uuid"
 )
 
@@ -15,6 +18,7 @@ var (
 	EmlRgx             = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 	PhneRgx            = regexp.MustCompile(`^\d{3}-\d{3}-\d{4}$/`)
 	DefaultRecordLimit = 10
+	maxSize            = int64(1024000)
 )
 
 func WriteTimeoutResponse(w http.ResponseWriter) error {
@@ -93,4 +97,24 @@ func DeterminRecordLimit(limt int) int {
 	}
 
 	return limt
+}
+
+func ParseFile(r *http.Request) (multipart.File, *multipart.FileHeader, error) {
+	err := r.ParseMultipartForm(maxSize)
+
+	if err != nil {
+		return nil, nil, api.ErrMaxSize{Err: err}
+	}
+
+	file, header, err := r.FormFile("image")
+
+	if err != nil {
+		if !errors.Is(err, http.ErrMissingFile) {
+			return nil, nil, err
+		} else {
+			return nil, nil, nil
+		}
+	}
+
+	return file, header, nil
 }

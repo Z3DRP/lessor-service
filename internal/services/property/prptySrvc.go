@@ -18,9 +18,10 @@ import (
 )
 
 type PropertyService struct {
-	repo    dac.PropertyRepo
-	logger  *crane.Zlogrus
-	s3Actor api.S3Actor
+	repo   dac.PropertyRepo
+	logger *crane.Zlogrus
+	//s3Actor api.S3Actor
+	s3Actor api.FilePersister
 }
 
 func (p PropertyService) ServiceName() string {
@@ -83,7 +84,7 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 	}
 
 	propertyImgs := make(map[string]string)
-	imageUrls, err := p.s3Actor.GetAll(ctx, filter.Identifier)
+	imageUrls, err := p.s3Actor.List(ctx, filter.Identifier)
 
 	if err != nil {
 		return nil, err
@@ -119,7 +120,8 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.Property
 	}
 
 	if fileData != nil {
-		fileName, err := p.s3Actor.Upload(ctx, property.AlessorId.String(), property.Pid.String(), fileData)
+		var fileName string
+		fileName, err = p.s3Actor.Upload(ctx, property.AlessorId.String(), property.Pid.String(), fileData)
 
 		if err != nil {
 			return nil, err

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,12 +31,31 @@ var (
 )
 
 type Uploader interface {
-	Upload(*http.Request) (string, error)
+	Upload(context.Context, string, string, *ztype.FileUploadDto) (string, error)
 }
 
 type Getter interface {
-	Get(context.Context, string) ([]string, error)
-	GetAll(context.Context, string) (string, error)
+	Get(context.Context, string, string, string) (string, error)
+	List(context.Context, string) (map[string]string, error)
+}
+
+// TODO update this to be more testable and use these smaller interfaces
+
+type FilePersister interface {
+	Uploader
+	Getter
+}
+
+type S3ObjectGetter interface {
+	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+}
+
+type S3ObjectUploader interface {
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+}
+
+type S3ObjectLister interface {
+	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
 }
 
 type S3Actor struct {
@@ -47,7 +65,7 @@ type S3Actor struct {
 	StoppedAt time.Time
 }
 
-func NewS3Actor(ctx context.Context, dir string) (S3Actor, error) {
+func NewS3Actor(ctx context.Context, objDir string) (S3Actor, error) {
 	// loadDefaultConfig load all env variables it checks the aws shared dir then env vars but
 	// i want to only use env vars so use credProvider
 	// if this doesnt work then do this
@@ -71,7 +89,7 @@ func NewS3Actor(ctx context.Context, dir string) (S3Actor, error) {
 	}
 
 	return S3Actor{
-		dir:       dir,
+		dir:       objDir,
 		client:    s3.NewFromConfig(cfg),
 		StartedAt: time.Now(),
 	}, nil
@@ -110,7 +128,7 @@ func (a S3Actor) Upload(ctx context.Context, ownerId, objId string, file *ztype.
 	return tstampFilename, nil
 }
 
-func (a S3Actor) GetAll(ctx context.Context, ownerId string) (map[string]string, error) {
+func (a S3Actor) List(ctx context.Context, ownerId string) (map[string]string, error) {
 	// said to do full key name ? bucket /folder/fileName.ext ?
 	// result, err := a.client.GetObject(ctx, &s3.GetObjectInput{
 	// 	Bucket: aws.String(bucket),
@@ -152,7 +170,7 @@ func (a S3Actor) GetAll(ctx context.Context, ownerId string) (map[string]string,
 	return imgs, nil
 }
 
-func (s *S3Actor) Get(ctx context.Context, ownerId, objId string, fileKey string) (string, error) {
+func (s S3Actor) Get(ctx context.Context, ownerId, objId string, fileKey string) (string, error) {
 	psClient := s3.NewPresignClient(s.client)
 
 	// the obj dir path is obj/owner-id/obj-id/filename

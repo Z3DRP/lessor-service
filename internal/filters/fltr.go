@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/google/uuid"
 )
 
@@ -38,12 +39,12 @@ func GenFilter(r *http.Request) (Filter, error) {
 	page, err := strconv.Atoi(query.Get("page"))
 
 	if err != nil {
-		return Filter{}, err
+		return Filter{}, fmt.Errorf("page was not included with request %v", err)
 	}
 
 	lmt, err := strconv.Atoi(query.Get("limit"))
 	if err != nil {
-		return Filter{}, err
+		lmt = utils.DeterminRecordLimit(0)
 	}
 
 	fltr := Filter{Identifier: id, Page: page, Limit: lmt}

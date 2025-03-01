@@ -63,7 +63,26 @@ func (u UserService) AuthenticateUser(ctx context.Context, fltr filters.Filterer
 		return false, model.User{}, err
 	}
 
+	log.Printf("credentials match")
+
 	return isMatch, user, nil
+}
+
+func (u UserService) ValidateClaims(ctx context.Context, token string) (model.User, error) {
+	claims := auth.ParseAuthToken(token)
+	user, err := u.GetUsr(ctx, filters.Filter{Identifier: claims.Id})
+
+	if err != nil {
+		return model.User{}, fmt.Errorf("could not validtae claims: %v", err)
+	}
+
+	// dont worry about expirey for now
+
+	// if time.Now().Unix() > claims.ExpiresAt.Unix() {
+	// 	return model.User{}, auth.ErrExpiredToken{ExpireyDate: claims.ExpiresAt.String()}
+	// }
+
+	return user, nil
 }
 
 func (p UserService) GetUsr(ctx context.Context, fltr filters.Filterer) (model.User, error) {

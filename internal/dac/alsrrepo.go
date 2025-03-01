@@ -12,20 +12,20 @@ import (
 )
 
 type AlessorRepo struct {
-	Store
+	Persister
 	Limit int
 }
 
-func InitAlsrRepo(db Store) AlessorRepo {
+func InitAlsrRepo(db Persister) AlessorRepo {
 	return AlessorRepo{
-		Store: db,
+		Persister: db,
 	}
 }
 
 func (a *AlessorRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var alsr model.Alessor
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := a.BdB.NewSelect().Model(&alsr).
+	err := a.GetBunDB().NewSelect().Model(&alsr).
 		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (a *AlessorRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface
 func (a *AlessorRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Alessor, error) {
 	var alsrs []model.Alessor
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := a.BdB.NewSelect().Model(&alsrs).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+	err := a.GetBunDB().NewSelect().Model(&alsrs).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Alessor", Err: err}
 	}
@@ -52,7 +52,7 @@ func (a *AlessorRepo) Insert(ctx context.Context, alsr any) (interface{}, error)
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Alessor{}, Got: alsr}
 	}
 
-	tx, err := a.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := a.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -77,7 +77,7 @@ func (a *AlessorRepo) Update(ctx context.Context, alsr any) (interface{}, error)
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Alessor{}, Got: alsr}
 	}
 
-	tx, err := a.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := a.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -102,7 +102,7 @@ func (a *AlessorRepo) Delete(ctx context.Context, alsr any) error {
 		return cmerr.ErrUnexpectedData{Wanted: model.Alessor{}, Got: alsr}
 	}
 
-	tx, err := a.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := a.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return ErrTransactionStartFailed{Err: err}
 	}

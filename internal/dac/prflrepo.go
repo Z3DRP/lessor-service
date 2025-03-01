@@ -11,19 +11,19 @@ import (
 )
 
 type ProfileRepo struct {
-	Store
+	Persister
 	Limit int
 }
 
-func InitPrflRepo(db Store) ProfileRepo {
+func InitPrflRepo(db Persister) ProfileRepo {
 	return ProfileRepo{
-		Store: db,
+		Persister: db,
 	}
 }
 
 func (p *ProfileRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (interface{}, error) {
 	var prfl model.Profile
-	err := p.BdB.NewSelect().Model(&prfl).
+	err := p.GetBunDB().NewSelect().Model(&prfl).
 		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(p.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Profile", Err: err}
@@ -34,7 +34,7 @@ func (p *ProfileRepo) Fetch(ctx context.Context, fltr filters.UuidFilter) (inter
 
 func (p *ProfileRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Profile, error) {
 	var prfls []model.Profile
-	err := p.BdB.NewSelect().Model(&prfls).Limit(p.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+	err := p.GetBunDB().NewSelect().Model(&prfls).Limit(p.Limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Profile", Err: err}
@@ -49,7 +49,7 @@ func (p *ProfileRepo) Insert(ctx context.Context, prfl any) (interface{}, error)
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Profile{}, Got: prfl}
 	}
 
-	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -74,7 +74,7 @@ func (p *ProfileRepo) Update(ctx context.Context, prfl any) (interface{}, error)
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Profile{}, Got: prfl}
 	}
 
-	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -100,7 +100,7 @@ func (p *ProfileRepo) Delete(ctx context.Context, prfl any) error {
 		return cmerr.ErrUnexpectedData{Wanted: model.Profile{}, Got: prfl}
 	}
 
-	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return ErrTransactionStartFailed{Err: err}
 	}

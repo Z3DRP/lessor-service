@@ -15,9 +15,54 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
+type Persister interface {
+	GetDB() *sql.DB
+	GetBunDB() *bun.DB
+}
+
 type Store struct {
 	db  *sql.DB
 	BdB bun.DB
+}
+
+func (s Store) GetDB() *sql.DB {
+	return s.db
+}
+
+func (s Store) GetBunDB() *bun.DB {
+	return &s.BdB
+}
+
+type StoreBuilder struct {
+	db  *sql.DB
+	bdb bun.DB
+}
+
+func NewBuilder() *StoreBuilder {
+	return &StoreBuilder{}
+}
+
+func (b *StoreBuilder) SetDB(db *sql.DB) *StoreBuilder {
+	b.db = db
+	return b
+}
+
+func (b *StoreBuilder) SetBunDB() *StoreBuilder {
+	if b.db == nil {
+		panic("SetDb must be called first")
+	}
+	b.bdb = *bun.NewDB(b.db, pgdialect.New())
+	return b
+}
+
+func (b *StoreBuilder) Build() Persister {
+	if b.db == nil {
+		panic("Database connecciton must be set before building")
+	}
+	return &Store{
+		db:  b.db,
+		BdB: b.bdb,
+	}
 }
 
 func InitStore(db *sql.DB) Store {

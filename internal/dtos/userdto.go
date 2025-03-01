@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 )
 
@@ -40,6 +41,34 @@ func (u *UserSignupRequest) Validate() error {
 		Phone:     u.Phone,
 		Email:     u.Email,
 	})
+}
+
+type UserSigninRequest struct {
+	Uid         string
+	FirstName   string
+	LastName    string
+	IsActive    bool
+	Phone       string
+	Email       string
+	ProfileType string
+	Username    string
+}
+
+func (u *UserSigninRequest) Validate() error {
+	return nil
+}
+
+func NewSigninRequest(usr model.User) UserSigninRequest {
+	return UserSigninRequest{
+		Uid:         usr.Uid.String(), // alessor id
+		FirstName:   usr.FirstName,
+		LastName:    usr.LastName,
+		IsActive:    usr.IsActive,
+		Phone:       usr.Phone,
+		Email:       usr.Email,
+		ProfileType: usr.ProfileType,
+		Username:    usr.Username,
+	}
 }
 
 type UserRequest struct {

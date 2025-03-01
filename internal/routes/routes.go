@@ -39,6 +39,7 @@ func NewServer(sconfig *config.ZServerConfig, alsrHndlr alssr.AlessorHandler, us
 func registerRoutes(mux *http.ServeMux, aHndlr alssr.AlessorHandler, uHndlr usr.UserHandler, pHndlr property.PropertyHandler) {
 	mux.HandleFunc("POST /sign-in", uHndlr.HandleLogin)
 	mux.HandleFunc("POST /sign-up", uHndlr.HandleSignUp)
+	mux.HandleFunc("GET /user-details", uHndlr.HandleGetDetails)
 	mux.HandleFunc("GET /alessor", aHndlr.HandleGetAlessors)
 	mux.HandleFunc("GET /alessor/{id}", aHndlr.HandleGetAlessor)
 	mux.HandleFunc("POST /alessor/{id}", aHndlr.HandleCreateAlessor)
@@ -70,7 +71,7 @@ func Authenticate(next http.Handler) http.HandlerFunc {
 		}
 
 		token := cook.Value
-		claims := &auth.Claims{}
+		claims := &auth.UserClaims{}
 		tkn, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 			return auth.GetJwtKey()
 		})

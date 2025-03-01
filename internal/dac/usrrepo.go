@@ -14,21 +14,20 @@ import (
 )
 
 type UserRepo struct {
-	Store
+	Persister
 	Limit int
 }
 
-func InitUsrRepo(db Store) UserRepo {
+func InitUsrRepo(db Persister) UserRepo {
 	return UserRepo{
-		Store: db,
+		Persister: db,
 	}
 }
 
 func (u *UserRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var usr model.User
-	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := u.BdB.NewSelect().Model(&usr).
-		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &usr)
+	err := u.GetBunDB().NewSelect().Model(&usr).
+		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Scan(ctx, &usr)
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "User", Err: err}
 	}
@@ -39,7 +38,7 @@ func (u *UserRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{},
 func (u *UserRepo) GetCredentials(ctx context.Context, email string) (interface{}, error) {
 	var usr model.User
 	log.Printf("email used: %v", email)
-	err := u.BdB.NewSelect().Model(&usr).
+	err := u.GetBunDB().NewSelect().Model(&usr).
 		Column("uid", "username", "email", "profile_type", "password").
 		Where("? = ?", bun.Ident("email"), email).Scan(ctx, &usr)
 
@@ -59,7 +58,7 @@ func (u *UserRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.U
 	// need to add a company or lessor identifier
 	var usrs []model.User
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := u.BdB.NewSelect().Model(&usrs).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, usrs)
+	err := u.GetBunDB().NewSelect().Model(&usrs).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, usrs)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "User", Err: err}
@@ -75,7 +74,7 @@ func (u *UserRepo) Insert(ctx context.Context, usr any) (interface{}, error) {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.User{}, Got: usr}
 	}
 
-	tx, err := u.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := u.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
@@ -108,7 +107,7 @@ func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.User{}, Got: usr}
 	}
 
-	tx, err := u.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := u.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -137,7 +136,7 @@ func (u *UserRepo) Delete(ctx context.Context, usr any) error {
 		return cmerr.ErrUnexpectedData{Wanted: model.User{}, Got: usr}
 	}
 
-	tx, err := u.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := u.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return ErrTransactionStartFailed{Err: err}
 	}

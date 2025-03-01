@@ -28,8 +28,8 @@ func (p PropertyService) ServiceName() string {
 	return "Property"
 }
 
-func NewPropertyService(repo dac.PropertyRepo, actr api.S3Actor, logr *crane.Zlogrus) *PropertyService {
-	return &PropertyService{
+func NewPropertyService(repo dac.PropertyRepo, actr api.S3Actor, logr *crane.Zlogrus) PropertyService {
+	return PropertyService{
 		repo:    repo,
 		s3Actor: actr,
 		logger:  logr,

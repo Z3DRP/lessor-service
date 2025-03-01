@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -25,18 +26,26 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-type Claims struct {
+type UserClaims struct {
 	Id       string `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
 	jwt.RegisteredClaims
 }
 
+type ErrExpiredToken struct {
+	ExpireyDate string
+}
+
+func (e ErrExpiredToken) Error() string {
+	return fmt.Sprintf("invalid token expired at %v", e.ExpireyDate)
+}
+
 func GenerateToken(id string, username string, role string) (string, error) {
 	expirationTime := time.Now().Add(2 * time.Hour)
 	//devTime := time.Now().Add((24 * time.Hour) * 365)
 
-	claims := &Claims{
+	claims := &UserClaims{
 		Id:       id,
 		Username: username,
 		Role:     role,
@@ -58,6 +67,42 @@ func GenerateToken(id string, username string, role string) (string, error) {
 		return "", err
 	}
 	return tokenString, nil
+}
+
+func NewRefreshToken(claims jwt.RegisteredClaims) (string, error) {
+	key, err := getKey()
+	if err != nil {
+		return "", err
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return refreshToken.SignedString([]byte(key))
+}
+
+func ParseAuthToken(accessToken string) *UserClaims {
+	parsedAccessToken, _ := jwt.ParseWithClaims(accessToken, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		key, err := getKey()
+		if err != nil {
+			return nil, err
+		}
+		return []byte(key), nil
+	})
+
+	return parsedAccessToken.Claims.(*UserClaims)
+}
+
+func ParseRefreshToken(refreshToken string) *jwt.RegisteredClaims {
+	parsedRefreshToken, _ := jwt.ParseWithClaims(refreshToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		key, err := getKey()
+		if err != nil {
+			return nil, err
+		}
+
+		return []byte(key), nil
+	})
+
+	return parsedRefreshToken.Claims.(*jwt.RegisteredClaims)
 }
 
 func getKey() ([]byte, error) {

@@ -15,7 +15,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/services/usr"
 )
 
-func ServiceFactory(serviceName string, store dac.Store, logger *crane.Zlogrus) (services.Service, error) {
+func ServiceFactory(serviceName string, store dac.Persister, logger *crane.Zlogrus) (services.Service, error) {
 	switch strings.ToLower(serviceName) {
 	case "alessor":
 		repo := dac.InitAlsrRepo(store)

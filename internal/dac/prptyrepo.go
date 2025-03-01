@@ -13,19 +13,19 @@ import (
 )
 
 type PropertyRepo struct {
-	Store
+	Persister
 }
 
-func InitPrptyRepo(db Store) PropertyRepo {
+func InitPrptyRepo(db Persister) PropertyRepo {
 	return PropertyRepo{
-		Store: db,
+		Persister: db,
 	}
 }
 
 func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var prpty model.Property
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := p.BdB.NewSelect().Model(&prpty).
+	err := p.GetBunDB().NewSelect().Model(&prpty).
 		Where("? = ?", bun.Ident("pid"), fltr.Identifier).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &prpty)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.Filter) (interfac
 func (p *PropertyRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Property, error) {
 	var propertys []model.Property
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := p.BdB.NewSelect().Model(&propertys).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &propertys)
+	err := p.GetBunDB().NewSelect().Model(&propertys).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &propertys)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Property", Err: err}
@@ -54,7 +54,7 @@ func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, erro
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
@@ -85,7 +85,7 @@ func (p *PropertyRepo) Update(ctx context.Context, prpty any) (interface{}, erro
 		return model.Property{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 
 	if err != nil {
 		return model.Property{}, ErrTransactionStartFailed{Err: err}
@@ -113,7 +113,7 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 		return cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	tx, err := p.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 
 	if err != nil {
 		return ErrTransactionStartFailed{Err: err}

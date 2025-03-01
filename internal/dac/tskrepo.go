@@ -12,20 +12,20 @@ import (
 )
 
 type TaskRepo struct {
-	Store
+	Persister
 	Limit int
 }
 
-func InitTskRepo(db Store) *TaskRepo {
+func InitTskRepo(db Persister) *TaskRepo {
 	return &TaskRepo{
-		Store: db,
+		Persister: db,
 	}
 }
 
 func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
 	var tsk model.Task
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := t.BdB.NewSelect().Model(&tsk).
+	err := t.GetBunDB().NewSelect().Model(&tsk).
 		Where("? = ?", bun.Ident("tid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{},
 func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Task, error) {
 	var tsks []model.Task
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := t.BdB.NewSelect().Model(&tsks).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+	err := t.GetBunDB().NewSelect().Model(&tsks).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
 		return nil, ErrFetchFailed{Model: "Task", Err: err}
@@ -53,7 +53,7 @@ func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
 
-	tx, err := t.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -74,7 +74,7 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
 
-	tx, err := t.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
@@ -95,7 +95,7 @@ func (t *TaskRepo) Delete(ctx context.Context, tsk any) error {
 		return cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
 
-	tx, err := t.BdB.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return ErrTransactionStartFailed{Err: err}
 	}

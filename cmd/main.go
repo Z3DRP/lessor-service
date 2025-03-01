@@ -43,7 +43,9 @@ func run() error {
 		})
 	}
 
-	dbStore := dac.InitStore(dbConnection)
+	dbStore := dac.NewBuilder().SetDB(dbConnection).SetBunDB().Build()
+
+	//dbStore := dac.InitStore(dbConnection)
 	// creating alessor service will never return an err so ignore it
 	alsrService, _ := factories.ServiceFactory("Alessor", dbStore, crane.DefaultLogger)
 	alsrHandler, err := factories.HandlerFactory(alsrService.ServiceName(), alsrService)

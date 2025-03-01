@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Z3DRP/lessor-service/internal/auth"
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
@@ -13,6 +14,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
+	"github.com/sirupsen/logrus"
 )
 
 type UserHandler struct {
@@ -44,6 +46,8 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("authenticated value before checking its value %v", authenticated)
+
 	if !authenticated {
 		log.Printf("usr not authenticated")
 		utils.WriteErr(w, http.StatusUnauthorized, errors.New("invalid credentials"))
@@ -52,6 +56,7 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("generating token")
 	token, err := auth.GenerateToken(user.Uid.String(), creds.Email, user.ProfileType)
+	log.Printf("Generating token for UID: %s, Email: %s, Role: %s", user.Uid.String(), creds.Email, user.ProfileType)
 
 	if err != nil {
 		log.Printf("error generating token %v\n", err)
@@ -71,9 +76,11 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// 	// SameSite: http.SameSiteStrictMode,
 	// })
 
+	uDto := dtos.NewSigninRequest(user)
+
 	res := ztype.JsonResponse{
 		"accessToken": token,
-		"user":        user,
+		"user":        uDto,
 	}
 
 	if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
@@ -117,7 +124,8 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		token, err := auth.GenerateToken(user.Uid.String(), user.Username, user.ProfileType)
+		token, err := auth.GenerateToken(user.Uid.String(), user.Email, user.ProfileType)
+		log.Printf("Generating token for UID: %s, Email: %s, Role: %s", user.Uid.String(), user.Email, user.ProfileType)
 
 		if err != nil {
 			u.logger.MustDebug(fmt.Sprintf("auth error: %v", err))
@@ -138,6 +146,59 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
 			u.logger.MustDebug(fmt.Sprintf("json encoding err %v", err))
 			log.Printf("error encoding json: %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func (u UserHandler) HandleGetDetails(w http.ResponseWriter, r *http.Request) {
+	select {
+	case <-r.Context().Done():
+		timeoutErr := utils.ErrRequestTimeout{Request: r}
+		u.logger.MustDebug(timeoutErr.Error())
+		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
+	default:
+		authHeader := r.Header.Get("Authorization")
+
+		if authHeader == "" {
+			u.logger.LogFields(logrus.Fields{
+				"msg":     "request did not have auth token",
+				"request": r.URL,
+			})
+			log.Printf("request did not have auth token: %v", r.URL)
+			utils.WriteErr(w, http.StatusBadRequest, errors.New("request did not have auth token"))
+			return
+		}
+
+		tokenParts := strings.Split(authHeader, " ")
+
+		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+			log.Printf("token was not on header")
+			utils.WriteErr(w, http.StatusBadRequest, errors.New("header did not have token"))
+			return
+		}
+
+		token := tokenParts[1]
+		user, err := u.ValidateClaims(r.Context(), token)
+
+		if err != nil {
+			// TODO will need to check for expirey after is setup
+			u.logger.LogFields(logrus.Fields{
+				"msg": "token claim validation failed",
+				"err": err,
+			})
+			log.Printf("token claim validation failed: %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		uDto := dtos.NewSigninRequest(user)
+		res := ztype.JsonResponse{
+			"user": uDto,
+		}
+
+		if err := utils.WriteJSON(w, http.StatusOK, res); err != nil {
+			log.Printf("failed to write json response %v", err)
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 		}
 	}

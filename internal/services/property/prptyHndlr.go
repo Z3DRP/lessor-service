@@ -2,6 +2,7 @@ package property
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
@@ -34,38 +35,43 @@ func (p PropertyHandler) HandleCreateProperty(w http.ResponseWriter, r *http.Req
 			fileUpload *ztype.FileUploadDto
 			payload    dtos.PropertyRequest
 		)
-		file, header, err := utils.ParseFile(r)
 
-		if err != nil {
-			p.logger.LogFields(logrus.Fields{
-				"msg": "error occurred while parsing file from request",
-				"err": err,
-			})
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
+		contentType := r.Header.Get("Content-Type")
 
-		if file != nil {
-			fileUpload = &ztype.FileUploadDto{File: file, Header: header}
-			defer file.Close()
+		if strings.HasPrefix(contentType, "multipart/form-data") {
+			file, header, err := utils.ParseFile(r)
 
-			if err = fileUpload.Validate(); err != nil {
+			if err != nil {
 				p.logger.LogFields(logrus.Fields{
-					"msg": "an error occurred while create file upload dto",
+					"msg": "error occurred while parsing file from request",
 					"err": err,
 				})
 				utils.WriteErr(w, http.StatusBadRequest, err)
 				return
 			}
+
+			if file != nil {
+				fileUpload = &ztype.FileUploadDto{File: file, Header: header}
+				defer file.Close()
+
+				if err = fileUpload.Validate(); err != nil {
+					p.logger.LogFields(logrus.Fields{
+						"msg": "an error occurred while create file upload dto",
+						"err": err,
+					})
+					utils.WriteErr(w, http.StatusBadRequest, err)
+					return
+				}
+			}
 		}
 
-		if err = utils.ParseJSON(r, &payload); err != nil {
+		if err := utils.ParseJSON(r, &payload); err != nil {
 			p.logger.LogFields(logrus.Fields{"msg": "failed to parse json", "err": err})
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err = payload.Validate(); err != nil {
+		if err := payload.Validate(); err != nil {
 			p.logger.LogFields(logrus.Fields{
 				"msg": "property validation failed",
 				"err": err,

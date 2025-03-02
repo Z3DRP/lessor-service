@@ -28,7 +28,11 @@ func (u *UserRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{},
 	var usr model.User
 	err := u.GetBunDB().NewSelect().Model(&usr).
 		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Scan(ctx, &usr)
+
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: usr, Identifier: fltr.Identifier, Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "User", Err: err}
 	}
 
@@ -46,7 +50,7 @@ func (u *UserRepo) GetCredentials(ctx context.Context, email string) (interface{
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Println("no rows found")
-			return nil, nil
+			return nil, ErrNoResults{Shape: usr, Identifier: email, Err: err}
 		}
 		return nil, err
 	}
@@ -61,6 +65,9 @@ func (u *UserRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.U
 	err := u.GetBunDB().NewSelect().Model(&usrs).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, usrs)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: model.User{}, Identifier: "[fetch-all]", Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "User", Err: err}
 	}
 

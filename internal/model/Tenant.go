@@ -14,6 +14,8 @@ type Tenant struct {
 	Id          int64     `bun:"column:id,pk,autoincrement"`
 	Uid         uuid.UUID `bun:"type:uuid,notnull,unique"`
 	User        *User     `bun:"rel:belongs-to,join:uid=uid"`
+	LessorId    uuid.UUID `bun:"type:uuid,notnull,unique"`
+	Lessor      *User     `bun:"rel:belongs-to,join:lessor_id=uid"`
 	MoveInDate  time.Time `bun:"type:timestamptz,nullzero"`
 	MoveOutDate time.Time `bun:"type:timestamptz,nullzero"`
 	PropertyId  uuid.UUID `bun:"type:uuid,notnull"`

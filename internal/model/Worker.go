@@ -27,8 +27,8 @@ type Worker struct {
 	Title         string          `bun:"type:varchar(100),nullzero"`
 	Specilization string          `bun:"type:varchar(255),nullzero"`
 	PayRate       decimal.Decimal `bun:"type:money,nullzero"`
-	BossId        uuid.UUID       `bun:"type:uuid,notnull"`
-	Alessor       *Alessor        `bun:"rel:belongs-to,join:boss_id=bid"`
+	LessorId      uuid.UUID       `bun:"type:uuid,notnull,unique"`
+	Alessor       *Alessor        `bun:"rel:belongs-to,join:lessor_id=uid"`
 	PaymentMethod MethodOfPayment `bun:"type:method_of_payment"`
 }
 

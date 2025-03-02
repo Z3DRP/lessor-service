@@ -50,6 +50,10 @@ func registerRoutes(mux *http.ServeMux, aHndlr alssr.AlessorHandler, uHndlr usr.
 	mux.HandleFunc("POST /user/{id}", uHndlr.HandleCreateUser)
 	mux.HandleFunc("PUT /user/{id}", uHndlr.HandleUpdateUser)
 	mux.HandleFunc("DELETE /user/{id}", uHndlr.HandleDeleteUser)
+	// need to update this to be more restful properties needs to be property/alsrId but
+	// but alessor id is needed and is triggering property/pid api doesnt
+	// know if its alessor id or propertyId so for now just use /properties/id
+	mux.HandleFunc("GET /properties/{id}", pHndlr.HandleGetProperties)
 	mux.HandleFunc("GET /property", pHndlr.HandleGetProperty)
 	mux.HandleFunc("GET /property/{id}", pHndlr.HandleGetProperty)
 	mux.HandleFunc("POST /property", pHndlr.HandleCreateProperty)

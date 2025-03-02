@@ -29,6 +29,9 @@ func (a *AlessorRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface
 		Where("? = ?", bun.Ident("uid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: alsr, Identifier: fltr.Identifier, Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "Alessor", Err: err}
 	}
 
@@ -40,6 +43,9 @@ func (a *AlessorRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]mode
 	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := a.GetBunDB().NewSelect().Model(&alsrs).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: model.Alessor{}, Identifier: "[fetch-all]", Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "Alessor", Err: err}
 	}
 

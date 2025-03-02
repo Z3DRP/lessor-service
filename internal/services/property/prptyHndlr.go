@@ -1,11 +1,15 @@
 package property
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"strings"
 
+	"github.com/Z3DRP/lessor-service/internal/dac"
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
+	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -111,6 +115,7 @@ func (p PropertyHandler) HandleGetProperty(w http.ResponseWriter, r *http.Reques
 		p.logger.LogFields(logrus.Fields{"msg": "request timeout", "err": timeOutErr})
 		utils.WriteErr(w, http.StatusRequestTimeout, timeOutErr)
 	default:
+		log.Printf("fetching single user with id")
 		fltr, err := filters.GenFilter(r)
 		if err != nil {
 			p.logger.LogFields(logrus.Fields{"msg": "failed to make filter", "err": err})
@@ -121,6 +126,18 @@ func (p PropertyHandler) HandleGetProperty(w http.ResponseWriter, r *http.Reques
 		prprty, err := p.GetProperty(r.Context(), fltr)
 
 		if err != nil {
+			var noResults dac.ErrNoResults
+			if errors.As(err, &noResults) {
+				res := ztype.JsonResponse{
+					"property": nil,
+					"success":  true,
+				}
+
+				if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+					utils.WriteErr(w, http.StatusInternalServerError, err)
+					return
+				}
+			}
 			p.logger.LogFields(logrus.Fields{"msg": "database error", "err": err})
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
@@ -152,6 +169,7 @@ func (p PropertyHandler) HandleGetProperties(w http.ResponseWriter, r *http.Requ
 		})
 		utils.WriteErr(w, http.StatusRequestTimeout, timeoutErr)
 	default:
+		log.Printf("fetching all propeties")
 		fltr, err := filters.GenFilter(r)
 
 		if err != nil {
@@ -166,6 +184,18 @@ func (p PropertyHandler) HandleGetProperties(w http.ResponseWriter, r *http.Requ
 		properties, err := p.GetProperties(r.Context(), fltr)
 
 		if err != nil {
+			var noResults dac.ErrNoResults
+			if errors.As(err, &noResults) {
+				res := ztype.JsonResponse{
+					"properties": make([]model.Property, 0),
+					"success":    true,
+				}
+
+				if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+					utils.WriteErr(w, http.StatusInternalServerError, err)
+					return
+				}
+			}
 			p.logger.LogFields(logrus.Fields{
 				"msg": "database err",
 				"err": err,

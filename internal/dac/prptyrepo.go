@@ -29,6 +29,9 @@ func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.Filter) (interfac
 		Where("? = ?", bun.Ident("pid"), fltr.Identifier).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &prpty)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: "Property", Identifier: fltr.Identifier, Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "Property", Err: err}
 	}
 
@@ -41,6 +44,9 @@ func (p *PropertyRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]mod
 	err := p.GetBunDB().NewSelect().Model(&propertys).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &propertys)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: model.Property{}, Identifier: "[fetch-all]", Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "Property", Err: err}
 	}
 

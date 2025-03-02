@@ -29,6 +29,10 @@ func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{},
 		Where("? = ?", bun.Ident("tid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: tsk, Identifier: fltr.Identifier, Err: err}
+		}
+
 		return nil, ErrFetchFailed{Model: "Task", Err: err}
 	}
 
@@ -41,6 +45,9 @@ func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Ta
 	err := t.GetBunDB().NewSelect().Model(&tsks).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoResults{Shape: model.Task{}, Identifier: "[fetch-all]", Err: err}
+		}
 		return nil, ErrFetchFailed{Model: "Task", Err: err}
 	}
 
@@ -60,11 +67,15 @@ func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 
 	rslt, err := tx.NewInsert().Model(&tk).Returning("*").Exec(ctx)
 	if err != nil {
-		tx.Rollback()
+		if err = tx.Rollback(); err != nil {
+			return nil, ErrRollbackFailed{err}
+		}
 		return nil, ErrInsertFailed{Model: "Task", Err: err}
 	}
 
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return nil, ErrTransactionCommitFail{err}
+	}
 	return rslt, err
 }
 
@@ -81,11 +92,15 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 
 	rslt, err := tx.NewUpdate().Model(&tk).WherePK().Returning("*").Exec(ctx)
 	if err != nil {
-		tx.Rollback()
+		if err = tx.Rollback(); err != nil {
+			return nil, ErrRollbackFailed{err}
+		}
 		return nil, ErrUpdateFailed{Model: "Task", Err: err}
 	}
 
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return nil, ErrTransactionCommitFail{err}
+	}
 	return rslt, nil
 }
 
@@ -102,10 +117,14 @@ func (t *TaskRepo) Delete(ctx context.Context, tsk any) error {
 
 	_, err = tx.NewDelete().Model(&tk).WherePK().Exec(ctx)
 	if err != nil {
-		tx.Rollback()
+		if err = tx.Rollback(); err != nil {
+			return ErrRollbackFailed{err}
+		}
 		return err
 	}
 
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return ErrTransactionCommitFail{err}
+	}
 	return nil
 }

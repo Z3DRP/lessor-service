@@ -2,6 +2,7 @@ package property
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 
 	"github.com/Z3DRP/lessor-service/internal/api"
@@ -36,37 +37,40 @@ func NewPropertyService(repo dac.PropertyRepo, actr api.S3Actor, logr *crane.Zlo
 	}
 }
 
-func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer) (dtos.PropertyResponse, error) {
+func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer) (*dtos.PropertyResponse, error) {
 	uidFilter, ok := fltr.(filters.Filter)
 
 	if !ok {
-		return dtos.PropertyResponse{}, filters.NewFailedToMakeFilterErr("uuid filter")
+		return nil, filters.NewFailedToMakeFilterErr("uuid filter")
 	}
 
 	prpty, err := p.repo.Fetch(ctx, uidFilter)
 
 	if err != nil {
-		return dtos.PropertyResponse{}, err
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	property, ok := prpty.(model.Property)
 
 	if !ok {
-		return dtos.PropertyResponse{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
 	reqDto := dtos.PropertyResponse{Property: property}
 	if property.Image != "" {
-		fileUrl, err := p.s3Actor.Get(ctx, property.AlessorId.String(), property.Pid.String(), property.Image)
+		fileUrl, err := p.s3Actor.Get(ctx, property.LessorId.String(), property.Pid.String(), property.Image)
 
 		if err != nil {
-			return dtos.PropertyResponse{}, err
+			return nil, err
 		}
 
 		reqDto = dtos.NewPropertyResposne(property, &fileUrl)
 	}
 
-	return reqDto, nil
+	return &reqDto, nil
 }
 
 func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filterer) ([]dtos.PropertyResponse, error) {
@@ -80,6 +84,9 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 	properties, err := p.repo.FetchAll(ctx, filter)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -121,7 +128,7 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.Property
 
 	if fileData != nil {
 		var fileName string
-		fileName, err = p.s3Actor.Upload(ctx, property.AlessorId.String(), property.Pid.String(), fileData)
+		fileName, err = p.s3Actor.Upload(ctx, property.LessorId.String(), property.Pid.String(), fileData)
 
 		if err != nil {
 			return nil, err
@@ -153,7 +160,7 @@ func (p PropertyService) ModifyProperty(ctx context.Context, pdto dtos.PropertyM
 	}
 
 	if fileData != nil {
-		fileName, err := p.s3Actor.Upload(ctx, prpty.AlessorId.String(), prpty.Pid.String(), fileData)
+		fileName, err := p.s3Actor.Upload(ctx, prpty.LessorId.String(), prpty.Pid.String(), fileData)
 
 		if err != nil {
 			return model.Property{}, err
@@ -190,7 +197,7 @@ func (p PropertyService) DeleteProperty(ctx context.Context, delReq dtos.DeleteR
 
 func newPropertyRequest(data dtos.PropertyRequest) *model.Property {
 	return &model.Property{
-		AlessorId:     utils.ParseUuid(data.AlessorId),
+		LessorId:      utils.ParseUuid(data.AlessorId),
 		Address:       data.Address,
 		Bedrooms:      data.Bedrooms,
 		Baths:         data.Baths,
@@ -207,7 +214,7 @@ func newPropertyRequest(data dtos.PropertyRequest) *model.Property {
 func newPropertyModRequest(data dtos.PropertyModificationRequest) *model.Property {
 	return &model.Property{
 		Pid:           utils.ParseUuid(data.Pid),
-		AlessorId:     utils.ParseUuid(data.Request.AlessorId),
+		LessorId:      utils.ParseUuid(data.Request.AlessorId),
 		Address:       data.Request.Address,
 		Bedrooms:      data.Request.Bedrooms,
 		Baths:         data.Request.Baths,

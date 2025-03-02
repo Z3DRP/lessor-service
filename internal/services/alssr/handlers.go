@@ -7,8 +7,10 @@ import (
 	"net/http"
 
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
+	"github.com/Z3DRP/lessor-service/internal/dac"
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
+	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 )
@@ -97,6 +99,18 @@ func (a AlessorHandler) HandleGetAlessor(w http.ResponseWriter, r *http.Request)
 
 		alessor, err := a.GetAlsr(r.Context(), fltr)
 		if err != nil {
+			var noResults dac.ErrNoResults
+			if errors.As(err, &noResults) {
+				res := ztype.JsonResponse{
+					"alessor": nil,
+					"success": true,
+				}
+
+				if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+					utils.WriteErr(w, http.StatusInternalServerError, err)
+					return
+				}
+			}
 			a.logger.MustDebug(fmt.Sprintf("failed to fetch alessor, %v", err))
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
@@ -125,6 +139,18 @@ func (a AlessorHandler) HandleGetAlessors(w http.ResponseWriter, r *http.Request
 	default:
 		fltr, err := filters.GenFilter(r)
 		if err != nil {
+			var noResults dac.ErrNoResults
+			if errors.As(err, &noResults) {
+				res := ztype.JsonResponse{
+					"alessors": make([]model.Alessor, 0),
+					"success":  true,
+				}
+
+				if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+					utils.WriteErr(w, http.StatusInternalServerError, err)
+					return
+				}
+			}
 			a.logger.MustDebug(fmt.Sprintf("failed create alessor query filter, %v", err))
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return

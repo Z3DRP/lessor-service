@@ -44,6 +44,20 @@ func (e ErrFetchFailed) Unwrap() error {
 	return e.Err
 }
 
+type ErrNoResults struct {
+	Err        error
+	Shape      any
+	Identifier string
+}
+
+func (e ErrNoResults) Error() string {
+	return fmt.Sprintf("no results found for %T : %v", e.Shape, e.Identifier)
+}
+
+func (e ErrNoResults) Unwrap() error {
+	return e.Err
+}
+
 type ErrInsertFailed struct {
 	Model string
 	Err   error
@@ -101,4 +115,16 @@ type ErrRollbackFailed struct {
 
 func (e ErrRollbackFailed) Error() string {
 	return fmt.Sprintf("rollback failed %v", e.Err)
+}
+
+type ErrTransactionCommitFail struct {
+	Err error
+}
+
+func (e ErrTransactionCommitFail) Error() string {
+	return fmt.Sprintf("failed to commit transaction %v", e.Err)
+}
+
+func (e ErrTransactionCommitFail) Unwrap() error {
+	return e.Err
 }

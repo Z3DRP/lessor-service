@@ -21,18 +21,18 @@ type Property struct {
 
 	Id            int64                  `bun:"column:id,pk,autoincrement"`
 	Pid           uuid.UUID              `bun:"type:uuid,notnull,unique"`
-	AlessorId     uuid.UUID              `bun:"type:uuid,notnull"`
-	Alessor       *Alessor               `bun:"rel:belongs-to,join:alessor_id=bid"`
+	LessorId      uuid.UUID              `bun:"type:uuid,notnull"`
+	Alessor       *Alessor               `bun:"rel:belongs-to,join:lessor_id=uid"`
 	Address       map[string]interface{} `bun:"type:jsonb,json_use_number"`
-	Bedrooms      int                    `bun:",notnull,nullzero,default:0"`
-	Baths         int                    `bun:",notnull,nullzero,default:0"`
-	SquareFootage float64                `bun:"type:numeric(10,2),nullzero"`
+	Bedrooms      int                    `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
+	Baths         int                    `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
+	SquareFootage float64                `bun:"type:numeric(10,4),nullzero"`
 	IsAvailable   bool                   `bun:",nullzero"`
 	Status        PropertyStatus         `bun:"type:property_status,default:'unknown'"`
 	Notes         string                 `bun:"type:varchar(255),nullzero"`
 	Image         string                 `bun:"type:varchar(255),nullzero"`
-	TaxRate       float64                `bun:"type:numeric(5,2),nullzero"`
-	TaxAmountDue  float64                `bun:"type:numeric(10,2)"`
+	TaxRate       float64                `bun:"type:numeric(10,4),nullzero"`
+	TaxAmountDue  float64                `bun:"type:money"`
 	MaxOccupancy  int                    `bun:",nullzero"`
 }
 

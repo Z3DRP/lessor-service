@@ -65,14 +65,6 @@ func (a *AlessorService) CreateAlsr(ctx context.Context, adto dtos.AlessorReques
 		return model.Alessor{}, errors.New("missing profile id")
 	}
 
-	if al.Bid == uuid.Nil {
-		var err error
-		al.Bid, err = uuid.NewRandom()
-		if err != nil {
-			return model.Alessor{}, err
-		}
-	}
-
 	alsr, err := a.repo.Insert(ctx, al)
 	if err != nil {
 		return model.Alessor{}, err
@@ -123,7 +115,6 @@ func newAlessor(adto dtos.AlessorRequest) *model.Alessor {
 	return &model.Alessor{
 		Id:                        adto.Id,
 		Uid:                       utils.ParseUuid(adto.Uid),
-		Bid:                       utils.ParseUuid(adto.Bid),
 		TotalProperties:           adto.TotalProperties,
 		SquareAccount:             adto.SquareAccount,
 		PaymentIntegrationEnabled: adto.PaymentIntegrationEnabled,

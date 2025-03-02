@@ -13,8 +13,8 @@ type Task struct {
 
 	Id           int64     `bun:"column:id,pk,autoincrement"`
 	Tid          uuid.UUID `bun:"type:uuid,notnull,unique"`
-	OwnerId      uuid.UUID `bun:"type:uuid,notnull"`
-	Alessor      *Alessor  `bun:"rel:belongs-to,join:owner_id=bid"`
+	LessorId     uuid.UUID `bun:"type:uuid,notnull,unique"`
+	Alessor      *Alessor  `bun:"rel:belongs-to,join:lessor_id=uid"`
 	Details      string    `bun:"type:varchar(255),notnull"`
 	Notes        string    `bun:"type:varchar(255)"`
 	PropertyId   uuid.UUID `bun:"type:uuid,notnull"`

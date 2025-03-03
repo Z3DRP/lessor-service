@@ -16,6 +16,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/services/prfl"
 	"github.com/Z3DRP/lessor-service/internal/services/property"
 	"github.com/Z3DRP/lessor-service/internal/services/usr"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
@@ -112,6 +113,11 @@ func run() error {
 }
 
 func main() {
+	// load .env file this is not the same as structure config loaded in run
+	if err := godotenv.Load(); err != nil {
+		log.Printf("WARNING no .env file found this may cause problems")
+	}
+
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)

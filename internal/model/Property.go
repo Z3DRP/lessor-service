@@ -24,15 +24,15 @@ type Property struct {
 	LessorId      uuid.UUID              `bun:"type:uuid,notnull"`
 	Alessor       *Alessor               `bun:"rel:belongs-to,join:lessor_id=uid"`
 	Address       map[string]interface{} `bun:"type:jsonb,json_use_number"`
-	Bedrooms      int                    `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
-	Baths         int                    `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
+	Bedrooms      float64                `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
+	Baths         float64                `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
 	SquareFootage float64                `bun:"type:numeric(10,4),nullzero"`
 	IsAvailable   bool                   `bun:",nullzero"`
 	Status        PropertyStatus         `bun:"type:property_status,default:'unknown'"`
 	Notes         string                 `bun:"type:varchar(255),nullzero"`
 	Image         string                 `bun:"type:varchar(255),nullzero"`
 	TaxRate       float64                `bun:"type:numeric(10,4),nullzero"`
-	TaxAmountDue  float64                `bun:"type:money"`
+	TaxAmountDue  float64                `bun:"type:numeric(10,2)"`
 	MaxOccupancy  int                    `bun:",nullzero"`
 }
 

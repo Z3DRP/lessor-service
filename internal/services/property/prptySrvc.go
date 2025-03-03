@@ -3,6 +3,7 @@ package property
 import (
 	"context"
 	"database/sql"
+	"log"
 	"strings"
 
 	"github.com/Z3DRP/lessor-service/internal/api"
@@ -75,6 +76,7 @@ func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer)
 
 func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filterer) ([]dtos.PropertyResponse, error) {
 	// need to add a uuid filter for all repos because that way it limits the results in multi tenant db
+	var propResponses []dtos.PropertyResponse
 	filter, ok := fltr.(filters.Filter)
 
 	if !ok {
@@ -85,20 +87,34 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, dac.ErrNoResults{Err: err, Shape: propResponses, Identifier: "all"}
 		}
 		return nil, err
 	}
 
 	propertyImgs := make(map[string]string)
 	imageUrls, err := p.s3Actor.List(ctx, filter.Identifier)
+	log.Printf("image urls check %v", imageUrls)
 
 	if err != nil {
+		if err == api.ErrrNoImagesFound {
+			// no images so return properties found
+			log.Print("properties found but no iamges")
+			for _, prop := range properties {
+				propResponses = append(propResponses, dtos.PropertyResponse{
+					Property: prop,
+					ImageUrl: nil,
+				})
+			}
+			return propResponses, nil
+		}
+		log.Printf("list images response err props found but err occurred %v", err)
 		return nil, err
 	}
 
 	for key, url := range imageUrls {
 		parts := strings.Split(key, "/")
+		log.Printf("image parts %v", parts)
 		if len(parts) < 3 {
 			continue
 		}
@@ -106,7 +122,6 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		propertyImgs[key] = url
 	}
 
-	var propResponses []dtos.PropertyResponse
 	for _, prop := range properties {
 		if url, found := propertyImgs[prop.Pid.String()]; found {
 			propResponses = append(propResponses, dtos.NewPropertyResposne(prop, &url))

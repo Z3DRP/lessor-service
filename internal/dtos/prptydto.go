@@ -11,8 +11,8 @@ import (
 type PropertyRequest struct {
 	AlessorId    string
 	Address      map[string]interface{}
-	Bedrooms     int
-	Baths        int
+	Bedrooms     float64
+	Baths        float64
 	SquareFt     float64
 	Available    bool
 	Status       string
@@ -22,7 +22,7 @@ type PropertyRequest struct {
 	MaxOccupancy int
 }
 
-func NewPropertyRequest(aid string, addr map[string]interface{}, bdrm, bth int, sqft float64, avb bool, stat, note string, txRate, txAmnt float64, occp int) PropertyRequest {
+func NewPropertyRequest(aid string, addr map[string]interface{}, bdrm, bth, sqft float64, avb bool, stat, note string, txRate, txAmnt float64, occp int) PropertyRequest {
 	return PropertyRequest{
 		AlessorId:    aid,
 		Address:      addr,

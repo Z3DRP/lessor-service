@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/Z3DRP/lessor-service/internal/dac"
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
@@ -181,11 +182,12 @@ func (p PropertyHandler) HandleGetProperties(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
+		// need to update this because if no rows then GetProperties call is returning nil, nil
 		properties, err := p.GetProperties(r.Context(), fltr)
 
 		if err != nil {
-			var noResults dac.ErrNoResults
-			if errors.As(err, &noResults) {
+			var noResults *dac.ErrNoResults
+			if errors.As(err, noResults) {
 				res := ztype.JsonResponse{
 					"properties": make([]model.Property, 0),
 					"success":    true,
@@ -196,8 +198,22 @@ func (p PropertyHandler) HandleGetProperties(w http.ResponseWriter, r *http.Requ
 					return
 				}
 			}
+
+			if err == api.ErrrNoImagesFound {
+				log.Printf("no images err as blck")
+				res := ztype.JsonResponse{
+					"properties": properties,
+					"success":    true,
+				}
+
+				if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+					utils.WriteErr(w, http.StatusInternalServerError, err)
+				}
+				return
+			}
+
 			p.logger.LogFields(logrus.Fields{
-				"msg": "database err",
+				"msg": "service err",
 				"err": err,
 			})
 			utils.WriteErr(w, http.StatusInternalServerError, err)

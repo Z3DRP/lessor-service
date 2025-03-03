@@ -24,8 +24,14 @@ func ServiceFactory(serviceName string, store dac.Persister, logger *crane.Zlogr
 		repo := dac.InitUsrRepo(store)
 		return usr.NewUserService(repo, logger), nil
 	case "property":
+		// needs to update to use actor inbox to send msg and init actor
 		repo := dac.InitPrptyRepo(store)
-		actor, err := api.NewS3Actor(context.TODO(), serviceName)
+		s3Dir, err := ServiceS3Dir(serviceName)
+		if err != nil {
+			return nil, err
+		}
+
+		actor, err := api.NewS3Actor(context.TODO(), s3Dir)
 		if err != nil {
 			return nil, err
 		}
@@ -58,4 +64,16 @@ func HandlerFactory(handlerName string, service services.Service) (services.Hand
 	default:
 		return nil, fmt.Errorf("handler not found for %v", handlerName)
 	}
+}
+
+func ServiceS3Dir(service string) (string, error) {
+	switch strings.ToLower(service) {
+	case "alessor", "user":
+		return "USERS_DIR", nil
+	case "property":
+		return "PROPERTIES_DIR", nil
+	default:
+		return "", fmt.Errorf("service %v does not have a s3 location", service)
+	}
+
 }

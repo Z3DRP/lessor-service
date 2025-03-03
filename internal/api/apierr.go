@@ -1,6 +1,9 @@
 package api
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type ErrInvalidBucketDir struct {
 	InvalidDir string
@@ -41,3 +44,5 @@ type ErrFileObjRead struct {
 func (e ErrFileObjRead) Error() string {
 	return fmt.Sprintf("file read failed %v", e.Err)
 }
+
+var ErrrNoImagesFound = errors.New("no images found")

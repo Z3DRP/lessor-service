@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"regexp"
+	"strconv"
 	"unicode/utf8"
 
 	"github.com/Z3DRP/lessor-service/internal/api"
@@ -117,4 +118,34 @@ func ParseFile(r *http.Request) (multipart.File, *multipart.FileHeader, error) {
 	}
 
 	return file, header, nil
+}
+
+func ParseFloatOrZero(s string) (float64, error) {
+	if s == "" {
+		return 0, nil
+	}
+
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return -1, err
+	}
+
+	return f, nil
+}
+
+func ParseIntOrZero(s string) (int, error) {
+	if s == "" {
+		return 0, nil
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return -1, err
+	}
+
+	return i, nil
+}
+
+func ParseBool(s string) bool {
+	return s == "true" || s == "on"
 }

@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -8,28 +9,62 @@ import (
 	"github.com/google/uuid"
 )
 
-type PropertyRequest struct {
-	AlessorId    string
-	Address      map[string]interface{}
-	Bedrooms     float64
-	Baths        float64
-	SquareFt     float64
-	Available    bool
-	Status       string
-	Notes        string
-	TaxRate      float64
-	TaxAmountDue float64
-	MaxOccupancy int
+type PropertyDto struct {
+	LessorId      string          `json:"alessorId"`
+	Status        string          `json:"status"`
+	Notes         string          `json:"notes"`
+	Image         string          `json:"image"`
+	Address       json.RawMessage `json:"address"`
+	Bedrooms      float64         `json:"bedrooms"`
+	Baths         float64         `json:"baths"`
+	SquareFootage float64         `json:"squareFt"`
+	TaxAmountDue  float64         `json:"taxAmountDue"`
+	TaxRate       float64         `json:"taxRate"`
+	MaxOccupancy  int             `json:"maxOccupancy"`
+	IsAvailable   bool            `json:"isAvailable"`
 }
 
-func NewPropertyRequest(aid string, addr map[string]interface{}, bdrm, bth, sqft float64, avb bool, stat, note string, txRate, txAmnt float64, occp int) PropertyRequest {
+func NewPropertyDto(p model.Property) PropertyDto {
+	return PropertyDto{
+		LessorId:      p.LessorId.String(),
+		Status:        string(p.Status),
+		Notes:         p.Notes,
+		Image:         p.Image,
+		Address:       p.Address,
+		Bedrooms:      p.Bedrooms,
+		Baths:         p.Baths,
+		SquareFootage: p.SquareFootage,
+		TaxAmountDue:  p.TaxAmountDue,
+		TaxRate:       p.TaxRate,
+		MaxOccupancy:  p.MaxOccupancy,
+		IsAvailable:   p.IsAvailable,
+	}
+}
+
+type PropertyRequest struct {
+	AlessorId    string          `json:"alessorId"`
+	Status       string          `json:"status"`
+	Notes        string          `json:"notes"`
+	Image        string          `json:"fileName"`
+	Address      json.RawMessage `json:"address"`
+	Bedrooms     float64         `json:"bedrooms"`
+	Baths        float64         `json:"baths"`
+	SquareFt     float64         `json:"squareFt"`
+	TaxAmountDue float64         `json:"taxAmountDue"`
+	TaxRate      float64         `json:"taxRate"`
+	MaxOccupancy int             `json:"maxOccupancy"`
+	IsAvailable  bool            `json:"isAvailable"`
+}
+
+func NewPropertyRequest(aid string, addr json.RawMessage, bdrm, bth, sqft float64, avb bool, stat, note, fileName string, txRate, txAmnt float64, occp int) PropertyRequest {
 	return PropertyRequest{
 		AlessorId:    aid,
 		Address:      addr,
 		Bedrooms:     bdrm,
 		Baths:        bth,
+		Image:        fileName,
 		SquareFt:     sqft,
-		Available:    avb,
+		IsAvailable:  avb,
 		Status:       stat,
 		Notes:        note,
 		TaxRate:      txRate,
@@ -74,15 +109,16 @@ func NewPropertyModRequest(id string, p PropertyRequest) PropertyModificationReq
 }
 
 type PropertyResponse struct {
-	Property model.Property
-	ImageUrl *string
+	Property PropertyDto `json:"property"`
+	ImageUrl *string     `json:"imageUrl"`
 }
 
 func (p *PropertyResponse) Valiate() error {
 	return nil
 }
 
-func NewPropertyResposne(p model.Property, url *string) PropertyResponse {
+func NewPropertyResposne(prty model.Property, url *string) PropertyResponse {
+	p := NewPropertyDto(prty)
 	return PropertyResponse{
 		Property: p,
 		ImageUrl: url,

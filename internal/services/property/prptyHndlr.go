@@ -1,11 +1,13 @@
 package property
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/Z3DRP/lessor-service/internal/adapters"
 	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/Z3DRP/lessor-service/internal/dac"
 	"github.com/Z3DRP/lessor-service/internal/dtos"
@@ -38,7 +40,7 @@ func (p PropertyHandler) HandleCreateProperty(w http.ResponseWriter, r *http.Req
 	default:
 		var (
 			fileUpload *ztype.FileUploadDto
-			payload    dtos.PropertyRequest
+			payload    *dtos.PropertyRequest
 		)
 
 		contentType := r.Header.Get("Content-Type")
@@ -55,8 +57,22 @@ func (p PropertyHandler) HandleCreateProperty(w http.ResponseWriter, r *http.Req
 				return
 			}
 
+			payload, err = adapters.ParsePropertyForm(r)
+			if err != nil {
+				log.Printf("failed to parse property form %v", err)
+			}
+
+			if err = payload.Validate(); err != nil {
+				p.logger.LogFields(logrus.Fields{
+					"msg": "property validation failed",
+					"err": err,
+				})
+				utils.WriteErr(w, http.StatusBadRequest, err)
+				return
+			}
+
 			if file != nil {
-				fileUpload = &ztype.FileUploadDto{File: file, Header: header}
+				fileUpload = &ztype.FileUploadDto{File: file, FileKey: payload.Image, Header: header}
 				defer file.Close()
 
 				if err = fileUpload.Validate(); err != nil {
@@ -68,21 +84,12 @@ func (p PropertyHandler) HandleCreateProperty(w http.ResponseWriter, r *http.Req
 					return
 				}
 			}
-		}
-
-		if err := utils.ParseJSON(r, &payload); err != nil {
-			p.logger.LogFields(logrus.Fields{"msg": "failed to parse json", "err": err})
-			utils.WriteErr(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		if err := payload.Validate(); err != nil {
-			p.logger.LogFields(logrus.Fields{
-				"msg": "property validation failed",
-				"err": err,
-			})
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
+		} else {
+			if err := utils.ParseJSON(r, payload); err != nil {
+				p.logger.LogFields(logrus.Fields{"msg": "failed to parse json", "err": err})
+				utils.WriteErr(w, http.StatusInternalServerError, err)
+				return
+			}
 		}
 
 		property, err := p.CreateProperty(r.Context(), payload, fileUpload)
@@ -144,12 +151,24 @@ func (p PropertyHandler) HandleGetProperty(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		res := ztype.JsonResponse{
-			"property": prprty,
-			"success":  true,
+		props, err := json.Marshal(prprty)
+		if err != nil {
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
 		}
 
-		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+		// res := ztype.JsonResponse{
+		// 	"property": props,
+		// 	"success":  true,
+		// }
+
+		if err = utils.WriteJSON(w, http.StatusOK, struct {
+			Property interface{} `json:"property"`
+			Success  bool        `json:"success"`
+		}{
+			Property: props,
+			Success:  true,
+		}); err != nil {
 			p.logger.LogFields(logrus.Fields{
 				"msg": "failed to encode json response",
 				"err": err,
@@ -220,12 +239,12 @@ func (p PropertyHandler) HandleGetProperties(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		res := ztype.JsonResponse{
-			"properties": properties,
-			"success":    true,
-		}
+		// res := ztype.JsonResponse{
+		// 	"properties": properties,
+		// 	"success":    true,
+		// }
 
-		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+		if err = utils.WriteJSON(w, http.StatusOK, properties); err != nil {
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 		}
 	}

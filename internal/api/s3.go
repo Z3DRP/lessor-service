@@ -96,7 +96,7 @@ func (a S3Actor) Upload(ctx context.Context, ownerId, objId string, file *ztype.
 	log.Printf("upload dir is %v", objDir)
 
 	// final bucket dir obj/lessor-id/obj-id/tstamp-Filename.ext
-	tstampFilename := fmt.Sprintf("%v-%v", time.Now().UnixNano(), file.Header.Filename)
+	tstampFilename := fmt.Sprintf("%v-%v-%v", time.Now().UnixNano(), file.FileKey, file.Header.Filename)
 	fileNameKey := filepath.Join(objDir, tstampFilename)
 	log.Printf("file upload path is %v", fileNameKey)
 
@@ -104,7 +104,6 @@ func (a S3Actor) Upload(ctx context.Context, ownerId, objId string, file *ztype.
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileNameKey),
 		Body:   file.File,
-		ACL:    "public-read",
 	})
 
 	if err != nil {
@@ -112,7 +111,7 @@ func (a S3Actor) Upload(ctx context.Context, ownerId, objId string, file *ztype.
 		return "", ErrFileObjUpload{Err: err}
 	}
 
-	return tstampFilename, nil
+	return fileNameKey, nil
 }
 
 func (a S3Actor) List(ctx context.Context, ownerId string) (map[string]string, error) {
@@ -120,7 +119,6 @@ func (a S3Actor) List(ctx context.Context, ownerId string) (map[string]string, e
 	// result, err := a.client.GetObject(ctx, &s3.GetObjectInput{
 	// 	Bucket: aws.String(bucket),
 	// 	Key:    aws.String(fileName),
-	// })
 
 	// in theory this should get everything say under properties/ownerId/
 
@@ -159,11 +157,14 @@ func (a S3Actor) List(ctx context.Context, ownerId string) (map[string]string, e
 		}, s3.WithPresignExpires(expireyHrs*time.Hour))
 
 		if err != nil {
+			log.Println()
+			log.Printf("err creating a presigned urls %v", err)
 			continue
 		}
 
 		imgs[*item.Key] = presignedUrl.URL
 	}
+	log.Println("returning images from actor")
 
 	return imgs, nil
 }

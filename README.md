@@ -29,3 +29,13 @@ My capstone project for my Bachelors Degree. This is part of a Property Manageme
 -- `make test` runs all tests in race condition mode
 -- `make test-cover` runs all the test but also displays test coverage
 
+
+# DEBUG
+dlv debug cmd/main.go --headless --listen=:2345 --api-version=2
+or
+run make run-live then
+dlv attach <PID> --headless --listen=:2345 --api-version=2
+where you find the pid with lsof -i :8087
+
+then if nvim start debug and attach via pid
+

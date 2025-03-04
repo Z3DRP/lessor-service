@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"strings"
 
 	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
@@ -60,7 +59,9 @@ func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer)
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	reqDto := dtos.PropertyResponse{Property: property}
+	pdto := dtos.NewPropertyDto(property)
+	reqDto := dtos.PropertyResponse{Property: pdto}
+
 	if property.Image != "" {
 		fileUrl, err := p.s3Actor.Get(ctx, property.LessorId.String(), property.Pid.String(), property.Image)
 
@@ -92,9 +93,15 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		return nil, err
 	}
 
-	propertyImgs := make(map[string]string)
+	//propertyImgs := make(map[string]string)
+	log.Printf("finding images for owner : %v", filter.Identifier)
+
 	imageUrls, err := p.s3Actor.List(ctx, filter.Identifier)
-	log.Printf("image urls check %v", imageUrls)
+	log.Printf("image urls check %+v", imageUrls)
+
+	for k, url := range imageUrls {
+		log.Printf("image url k: %v, url: %v", k, url)
+	}
 
 	if err != nil {
 		if err == api.ErrrNoImagesFound {
@@ -102,7 +109,7 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 			log.Print("properties found but no iamges")
 			for _, prop := range properties {
 				propResponses = append(propResponses, dtos.PropertyResponse{
-					Property: prop,
+					Property: dtos.NewPropertyDto(prop),
 					ImageUrl: nil,
 				})
 			}
@@ -112,26 +119,23 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		return nil, err
 	}
 
-	for key, url := range imageUrls {
-		parts := strings.Split(key, "/")
-		log.Printf("image parts %v", parts)
-		if len(parts) < 3 {
-			continue
-		}
-
-		propertyImgs[key] = url
-	}
+	log.Println("all good here about to loop presigned image urls")
 
 	for _, prop := range properties {
-		if url, found := propertyImgs[prop.Pid.String()]; found {
+		// prop.Image has the entire s3 path and file key i.e. property/{ownerId}/{objId}/filename
+		log.Printf("looking for property image %v", prop.Image)
+		if url, found := imageUrls[prop.Image]; found {
+			log.Println("found image for property")
 			propResponses = append(propResponses, dtos.NewPropertyResposne(prop, &url))
 		}
 	}
 
+	log.Printf("returning responses %+v", propResponses)
+
 	return propResponses, nil
 }
 
-func (p PropertyService) CreateProperty(ctx context.Context, pdata dtos.PropertyRequest, fileData *ztype.FileUploadDto) (*model.Property, error) {
+func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.PropertyRequest, fileData *ztype.FileUploadDto) (*model.Property, error) {
 	property := newPropertyRequest(pdata)
 	var err error
 
@@ -210,14 +214,14 @@ func (p PropertyService) DeleteProperty(ctx context.Context, delReq dtos.DeleteR
 	return nil
 }
 
-func newPropertyRequest(data dtos.PropertyRequest) *model.Property {
+func newPropertyRequest(data *dtos.PropertyRequest) *model.Property {
 	return &model.Property{
 		LessorId:      utils.ParseUuid(data.AlessorId),
 		Address:       data.Address,
 		Bedrooms:      data.Bedrooms,
 		Baths:         data.Baths,
 		SquareFootage: data.SquareFt,
-		IsAvailable:   data.Available,
+		IsAvailable:   data.IsAvailable,
 		Status:        model.PropertyStatus(data.Status),
 		Notes:         data.Notes,
 		TaxRate:       data.TaxRate,
@@ -234,7 +238,7 @@ func newPropertyModRequest(data dtos.PropertyModificationRequest) *model.Propert
 		Bedrooms:      data.Request.Bedrooms,
 		Baths:         data.Request.Baths,
 		SquareFootage: data.Request.SquareFt,
-		IsAvailable:   data.Request.Available,
+		IsAvailable:   data.Request.IsAvailable,
 		Status:        model.PropertyStatus(data.Request.Status),
 		Notes:         data.Request.Notes,
 		TaxRate:       data.Request.TaxRate,

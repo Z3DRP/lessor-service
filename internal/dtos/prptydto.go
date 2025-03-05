@@ -17,7 +17,7 @@ type PropertyDto struct {
 	Address       json.RawMessage `json:"address"`
 	Bedrooms      float64         `json:"bedrooms"`
 	Baths         float64         `json:"baths"`
-	SquareFootage float64         `json:"squareFt"`
+	SquareFootage float64         `json:"squareFootage"`
 	TaxAmountDue  float64         `json:"taxAmountDue"`
 	TaxRate       float64         `json:"taxRate"`
 	MaxOccupancy  int             `json:"maxOccupancy"`
@@ -49,7 +49,7 @@ type PropertyRequest struct {
 	Address      json.RawMessage `json:"address"`
 	Bedrooms     float64         `json:"bedrooms"`
 	Baths        float64         `json:"baths"`
-	SquareFt     float64         `json:"squareFt"`
+	SquareFt     float64         `json:"squareFootage"`
 	TaxAmountDue float64         `json:"taxAmountDue"`
 	TaxRate      float64         `json:"taxRate"`
 	MaxOccupancy int             `json:"maxOccupancy"`
@@ -109,19 +109,40 @@ func NewPropertyModRequest(id string, p PropertyRequest) PropertyModificationReq
 }
 
 type PropertyResponse struct {
-	Property PropertyDto `json:"property"`
-	ImageUrl *string     `json:"imageUrl"`
+	LessorId     string          `json:"alessorId"`
+	Status       string          `json:"status"`
+	Notes        string          `json:"notes"`
+	Image        string          `json:"image"`
+	Address      json.RawMessage `json:"address"`
+	Bedrooms     float64         `json:"bedrooms"`
+	Baths        float64         `json:"baths"`
+	SquareFt     float64         `json:"squareFootage"`
+	TaxAmountDue float64         `json:"taxAmountDue"`
+	TaxRate      float64         `json:"taxRate"`
+	MaxOccupancy int             `json:"maxOccupancy"`
+	IsAvailable  bool            `json:"isAvailable"`
+	ImageUrl     *string         `json:"imageUrl"`
 }
 
 func (p *PropertyResponse) Valiate() error {
 	return nil
 }
 
-func NewPropertyResposne(prty model.Property, url *string) PropertyResponse {
-	p := NewPropertyDto(prty)
+func NewPropertyResponse(p model.Property, url *string) PropertyResponse {
 	return PropertyResponse{
-		Property: p,
-		ImageUrl: url,
+		LessorId:     p.LessorId.String(),
+		Status:       string(p.Status),
+		Notes:        p.Notes,
+		Image:        p.Image,
+		Address:      p.Address,
+		Bedrooms:     p.Bedrooms,
+		Baths:        p.Baths,
+		SquareFt:     p.SquareFootage,
+		TaxAmountDue: p.TaxAmountDue,
+		TaxRate:      p.TaxRate,
+		MaxOccupancy: p.MaxOccupancy,
+		IsAvailable:  p.IsAvailable,
+		ImageUrl:     url,
 	}
 }
 

@@ -239,12 +239,12 @@ func (p PropertyHandler) HandleGetProperties(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		// res := ztype.JsonResponse{
-		// 	"properties": properties,
-		// 	"success":    true,
-		// }
+		res := ztype.JsonResponse{
+			"properties": properties,
+			"success":    true,
+		}
 
-		if err = utils.WriteJSON(w, http.StatusOK, properties); err != nil {
+		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 		}
 	}

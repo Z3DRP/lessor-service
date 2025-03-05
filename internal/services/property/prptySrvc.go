@@ -59,8 +59,7 @@ func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer)
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
-	pdto := dtos.NewPropertyDto(property)
-	reqDto := dtos.PropertyResponse{Property: pdto}
+	var reqDto dtos.PropertyResponse
 
 	if property.Image != "" {
 		fileUrl, err := p.s3Actor.Get(ctx, property.LessorId.String(), property.Pid.String(), property.Image)
@@ -69,7 +68,7 @@ func (p PropertyService) GetProperty(ctx context.Context, fltr filters.Filterer)
 			return nil, err
 		}
 
-		reqDto = dtos.NewPropertyResposne(property, &fileUrl)
+		reqDto = dtos.NewPropertyResponse(property, &fileUrl)
 	}
 
 	return &reqDto, nil
@@ -108,10 +107,7 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 			// no images so return properties found
 			log.Print("properties found but no iamges")
 			for _, prop := range properties {
-				propResponses = append(propResponses, dtos.PropertyResponse{
-					Property: dtos.NewPropertyDto(prop),
-					ImageUrl: nil,
-				})
+				propResponses = append(propResponses, dtos.NewPropertyResponse(prop, nil))
 			}
 			return propResponses, nil
 		}
@@ -126,7 +122,7 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		log.Printf("looking for property image %v", prop.Image)
 		if url, found := imageUrls[prop.Image]; found {
 			log.Println("found image for property")
-			propResponses = append(propResponses, dtos.NewPropertyResposne(prop, &url))
+			propResponses = append(propResponses, dtos.NewPropertyResponse(prop, &url))
 		}
 	}
 

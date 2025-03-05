@@ -9,13 +9,13 @@ import (
 )
 
 var (
-	bucket     string
-	region     string
-	secretId   string
-	secretKey  string
-	SetupErr   error
-	maxSize    int64
-	expireyHrs time.Duration
+	bucket    string
+	region    string
+	secretId  string
+	secretKey string
+	SetupErr  error
+	maxSize   int64
+	expirey   time.Duration
 )
 
 func init() {
@@ -28,5 +28,5 @@ func init() {
 	secretId = os.Getenv("AWS_ACCESS_KEY_ID")
 	secretKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 	maxSize = int64(1024000)
-	expireyHrs = 3 * time.Hour
+	expirey = 14400 * time.Second
 }

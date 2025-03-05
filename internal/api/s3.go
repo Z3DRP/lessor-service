@@ -154,7 +154,7 @@ func (a S3Actor) List(ctx context.Context, ownerId string) (map[string]string, e
 		presignedUrl, err := presignedClient.PresignGetObject(ctx, &s3.GetObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(*item.Key),
-		}, s3.WithPresignExpires(expireyHrs*time.Hour))
+		}, s3.WithPresignExpires(expirey))
 
 		if err != nil {
 			log.Println()
@@ -164,7 +164,6 @@ func (a S3Actor) List(ctx context.Context, ownerId string) (map[string]string, e
 
 		imgs[*item.Key] = presignedUrl.URL
 	}
-	log.Println("returning images from actor")
 
 	return imgs, nil
 }
@@ -184,7 +183,7 @@ func (a S3Actor) Get(ctx context.Context, ownerId, objId string, fileKey string)
 	psUrl, err := psClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileObjKey),
-	}, s3.WithPresignExpires(expireyHrs*time.Hour))
+	}, s3.WithPresignExpires(expirey))
 
 	if err != nil {
 		return "", fmt.Errorf("failed to create image url for file %v", err)

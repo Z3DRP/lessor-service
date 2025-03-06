@@ -123,6 +123,8 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		if url, found := imageUrls[prop.Image]; found {
 			log.Println("found image for property")
 			propResponses = append(propResponses, dtos.NewPropertyResponse(prop, &url))
+		} else {
+			propResponses = append(propResponses, dtos.NewPropertyResponse(prop, nil))
 		}
 	}
 

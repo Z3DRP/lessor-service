@@ -3,6 +3,8 @@ package property
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/Z3DRP/lessor-service/internal/api"
@@ -143,7 +145,7 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.Propert
 		return nil, err
 	}
 
-	if fileData != nil {
+	if fileData != nil && fileData.File != nil && fileData.Header != nil {
 		var fileName string
 		fileName, err = p.s3Actor.Upload(ctx, property.LessorId.String(), property.Pid.String(), fileData)
 
@@ -201,8 +203,17 @@ func (p PropertyService) ModifyProperty(ctx context.Context, pdto dtos.PropertyM
 	return property, nil
 }
 
-func (p PropertyService) DeleteProperty(ctx context.Context, delReq dtos.DeleteRequest) error {
-	pid, _ := uuid.Parse(delReq.Identifer)
+func (p PropertyService) DeleteProperty(ctx context.Context, f filters.Filterer) error {
+	fltr, ok := f.(filters.IdFilter)
+	if !ok {
+		return errors.New("failed to create id filter")
+	}
+
+	if err := fltr.Validate(); err != nil {
+		return fmt.Errorf("invalid request, %v", err)
+	}
+
+	pid, _ := uuid.Parse(fltr.Identifier)
 	err := p.repo.Delete(ctx, model.Property{Pid: pid})
 
 	if err != nil {

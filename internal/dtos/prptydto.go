@@ -109,6 +109,7 @@ func NewPropertyModRequest(id string, p PropertyRequest) PropertyModificationReq
 }
 
 type PropertyResponse struct {
+	Pid          string          `json:"pid"`
 	LessorId     string          `json:"alessorId"`
 	Status       string          `json:"status"`
 	Notes        string          `json:"notes"`
@@ -130,6 +131,7 @@ func (p *PropertyResponse) Valiate() error {
 
 func NewPropertyResponse(p model.Property, url *string) PropertyResponse {
 	return PropertyResponse{
+		Pid:          p.Pid.String(),
 		LessorId:     p.LessorId.String(),
 		Status:       string(p.Status),
 		Notes:        p.Notes,

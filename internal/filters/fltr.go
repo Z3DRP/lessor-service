@@ -28,6 +28,24 @@ func NewFilter(idnfr string, pg, lmt int) Filter {
 	}
 }
 
+type IdFilter struct {
+	Identifier string
+}
+
+func (i IdFilter) Validate() error {
+	if i.Identifier == "" {
+		return errors.New("a identifier is required")
+	}
+	return nil
+}
+
+func NewIdFilter(r *http.Request) IdFilter {
+	id := r.PathValue("id")
+	return IdFilter{
+		Identifier: id,
+	}
+}
+
 func GenFilter(r *http.Request) (Filter, error) {
 	query := r.URL.Query()
 	id := r.PathValue("id")

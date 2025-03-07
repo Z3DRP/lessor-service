@@ -114,6 +114,7 @@ func (p *PropertyRepo) Update(ctx context.Context, prpty any) (interface{}, erro
 
 func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 	property, ok := prpty.(model.Property)
+	log.Printf("deleting property: %v", property)
 
 	if !ok {
 		return cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}

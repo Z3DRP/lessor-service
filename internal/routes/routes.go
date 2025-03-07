@@ -58,7 +58,7 @@ func registerRoutes(mux *http.ServeMux, aHndlr alssr.AlessorHandler, uHndlr usr.
 	mux.HandleFunc("GET /property/{id}", pHndlr.HandleGetProperty)
 	mux.HandleFunc("POST /property", pHndlr.HandleCreateProperty)
 	mux.HandleFunc("PUT /property/{id}", pHndlr.HandleUpdateProperty)
-	//mux.HandleFunc("DELETE /property/{id}", pHndlr.HandleDeleteProperty)
+	mux.HandleFunc("DELETE /property/{id}", pHndlr.HandleDeleteProperty)
 }
 
 // make this unexported after jwt in use
@@ -96,7 +96,7 @@ func headerMiddleware(next http.Handler) http.HandlerFunc {
 
 		if config.IsValidOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		}
 

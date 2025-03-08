@@ -38,7 +38,7 @@ type Property struct {
 	SquareFootage float64         `bun:"type:numeric(10,4),nullzero"`
 	IsAvailable   bool            `bun:",nullzero"`
 	Status        PropertyStatus  `bun:"type:property_status,default:'unknown'"`
-	Notes         string          `bun:"type:varchar(255),nullzero"`
+	Notes         string          `bun:"type:text,nullzero"`
 	Image         string          `bun:"type:varchar(255),nullzero"`
 	TaxRate       float64         `bun:"type:numeric(10,4),nullzero"`
 	TaxAmountDue  float64         `bun:"type:numeric(10,2)"`

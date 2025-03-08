@@ -55,7 +55,7 @@ func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Ta
 }
 
 func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
-	tk, ok := tsk.(model.Task)
+	tk, ok := tsk.(*model.Task)
 	if !ok {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
@@ -65,7 +65,7 @@ func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	rslt, err := tx.NewInsert().Model(&tk).Returning("*").Exec(ctx)
+	err = tx.NewInsert().Model(&tk).Returning("*").Scan(ctx, tk)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return nil, ErrRollbackFailed{err}
@@ -76,7 +76,7 @@ func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 	if err = tx.Commit(); err != nil {
 		return nil, ErrTransactionCommitFail{err}
 	}
-	return rslt, err
+	return tk, err
 }
 
 func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
@@ -90,7 +90,7 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	rslt, err := tx.NewUpdate().Model(&tk).WherePK().Returning("*").Exec(ctx)
+	err = tx.NewUpdate().Model(&tk).WherePK().Returning("*").Scan(ctx, &tk)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return nil, ErrRollbackFailed{err}
@@ -101,7 +101,7 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 	if err = tx.Commit(); err != nil {
 		return nil, ErrTransactionCommitFail{err}
 	}
-	return rslt, nil
+	return tk, nil
 }
 
 func (t *TaskRepo) Delete(ctx context.Context, tsk any) error {
@@ -115,7 +115,7 @@ func (t *TaskRepo) Delete(ctx context.Context, tsk any) error {
 		return ErrTransactionStartFailed{Err: err}
 	}
 
-	_, err = tx.NewDelete().Model(&tk).WherePK().Exec(ctx)
+	_, err = tx.NewDelete().Model(&tk).Where("? = ?", bun.Ident("tid"), tk.Tid).Exec(ctx)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return ErrRollbackFailed{err}

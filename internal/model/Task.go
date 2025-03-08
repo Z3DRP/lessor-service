@@ -26,6 +26,9 @@ type Task struct {
 	PausedReason string    `bun:"type:varchar(255)"`
 	FailedAt     time.Time `bun:"type:timestamptz,nullzero"`
 	FailedReason string    `bun:"type:varchar(255)"`
+	WorkerId     uuid.UUID `bun:"type:uuid,nullzero"`
+	Worker       *Worker   `bun:"rel:belongs-to,join:WorkerId=uid"`
+	Image        string    `bun:"type:text,nullzero"`
 }
 
 func (t Task) Info() string {

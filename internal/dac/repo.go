@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 )
 
@@ -21,7 +20,7 @@ type Updater interface {
 }
 
 type Deleter interface {
-	Delete(context.Context, dtos.DeleteRequest) error
+	Delete(context.Context, any) error
 }
 
 type Repoer interface {

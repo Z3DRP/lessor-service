@@ -45,7 +45,7 @@ type PropertyRequest struct {
 	AlessorId    string          `json:"alessorId"`
 	Status       string          `json:"status"`
 	Notes        string          `json:"notes"`
-	Image        string          `json:"fileName"`
+	Image        string          `json:"image"`
 	Address      json.RawMessage `json:"address"`
 	Bedrooms     float64         `json:"bedrooms"`
 	Baths        float64         `json:"baths"`
@@ -81,16 +81,44 @@ func (p *PropertyRequest) Validate() error {
 	if p.Status != "pending" && p.Status != "in-progress" && p.Status != "completed" && p.Status != "unknown" {
 		return fmt.Errorf("invalid property status %v not supported", p.Status)
 	}
+
+	if p.Address == nil {
+		return errors.New("address is required")
+	}
+
+	if p.MaxOccupancy <= 0 {
+		return errors.New("max occupancy is required")
+	}
+
+	if p.Baths <= 0 {
+		return errors.New("number of baths is requried")
+	}
+
+	if p.Bedrooms <= 0 {
+		return errors.New("number of bedrooms is required")
+	}
+
 	return basePropertyValidate(p)
 }
 
 type PropertyModificationRequest struct {
-	Pid     string
-	Request PropertyRequest
+	Pid          string          `json:"pid"`
+	AlessorId    string          `json:"alessorId"`
+	Status       string          `json:"status"`
+	Notes        string          `json:"notes"`
+	Image        string          `json:"image"`
+	Address      json.RawMessage `json:"address"`
+	Bedrooms     float64         `json:"bedrooms"`
+	Baths        float64         `json:"baths"`
+	SquareFt     float64         `json:"squareFootage"`
+	TaxAmountDue float64         `json:"taxAmountDue"`
+	TaxRate      float64         `json:"taxRate"`
+	MaxOccupancy int             `json:"maxOccupancy"`
+	IsAvailable  bool            `json:"isAvailable"`
 }
 
 func (p *PropertyModificationRequest) Validate() error {
-	if _, err := uuid.Parse(p.Request.AlessorId); err != nil {
+	if _, err := uuid.Parse(p.AlessorId); err != nil {
 		return errors.New("invalid alessor id")
 	}
 
@@ -98,14 +126,7 @@ func (p *PropertyModificationRequest) Validate() error {
 		return errors.New("invalid pid")
 	}
 
-	return p.Request.Validate()
-}
-
-func NewPropertyModRequest(id string, p PropertyRequest) PropertyModificationRequest {
-	return PropertyModificationRequest{
-		Pid:     id,
-		Request: p,
-	}
+	return nil
 }
 
 type PropertyResponse struct {
@@ -130,6 +151,25 @@ func (p *PropertyResponse) Valiate() error {
 }
 
 func NewPropertyResponse(p model.Property, url *string) PropertyResponse {
+	return PropertyResponse{
+		Pid:          p.Pid.String(),
+		LessorId:     p.LessorId.String(),
+		Status:       string(p.Status),
+		Notes:        p.Notes,
+		Image:        p.Image,
+		Address:      p.Address,
+		Bedrooms:     p.Bedrooms,
+		Baths:        p.Baths,
+		SquareFt:     p.SquareFootage,
+		TaxAmountDue: p.TaxAmountDue,
+		TaxRate:      p.TaxRate,
+		MaxOccupancy: p.MaxOccupancy,
+		IsAvailable:  p.IsAvailable,
+		ImageUrl:     url,
+	}
+}
+
+func NewPropertyResponseFrmPointer(p *model.Property, url *string) PropertyResponse {
 	return PropertyResponse{
 		Pid:          p.Pid.String(),
 		LessorId:     p.LessorId.String(),

@@ -22,6 +22,7 @@ type Uploader interface {
 type Getter interface {
 	Get(context.Context, string, string, string) (string, error)
 	List(context.Context, string) (map[string]string, error)
+	GetFile(context.Context, string) (string, error)
 }
 
 // TODO update this to be more testable and use these smaller interfaces
@@ -183,6 +184,21 @@ func (a S3Actor) Get(ctx context.Context, ownerId, objId string, fileKey string)
 	psUrl, err := psClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileObjKey),
+	}, s3.WithPresignExpires(expirey))
+
+	if err != nil {
+		return "", fmt.Errorf("failed to create image url for file %v", err)
+	}
+
+	return psUrl.URL, nil
+}
+
+func (a S3Actor) GetFile(ctx context.Context, fileKey string) (string, error) {
+	psClient := s3.NewPresignClient(a.client)
+
+	psUrl, err := psClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(fileKey),
 	}, s3.WithPresignExpires(expirey))
 
 	if err != nil {

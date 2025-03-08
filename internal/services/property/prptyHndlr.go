@@ -263,47 +263,71 @@ func (p PropertyHandler) HandleUpdateProperty(w http.ResponseWriter, r *http.Req
 		})
 		utils.WriteErr(w, http.StatusRequestTimeout, err)
 	default:
+		log.Printf("update ep hit")
 		var (
-			fileUpload ztype.FileUploadDto
-			payload    dtos.PropertyModificationRequest
+			fileUpload *ztype.FileUploadDto
+			payload    *dtos.PropertyModificationRequest
 		)
-		file, header, err := utils.ParseFile(r)
 
-		if err != nil {
-			p.logger.LogFields(logrus.Fields{"msg": "an error occurred while pasring file", "err": err})
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
+		contentType := r.Header.Get("Content-Type")
 
-		if file != nil {
-			fileUpload = ztype.FileUploadDto{File: file, Header: header}
-			defer file.Close()
-			if err = fileUpload.Validate(); err != nil {
-				p.logger.LogFields(logrus.Fields{"msg": "error occurred while parsing file", "err": err})
+		if strings.HasPrefix(contentType, "multipart/form-data") {
+			log.Printf("is multipart form")
+			file, header, err := utils.ParseFile(r)
+
+			if err != nil {
+				p.logger.LogFields(logrus.Fields{
+					"msg": "error occurred while parsing file update",
+					"err": err,
+				})
+				log.Printf("failed to pasre file update %v", err)
+
 				utils.WriteErr(w, http.StatusBadRequest, err)
+				return
+			}
+
+			payload, err = adapters.ParsePropertyUpdateForm(r)
+
+			if err != nil {
+				log.Printf("fialed to parse property fomr %v", err)
+				utils.WriteErr(w, http.StatusBadRequest, err)
+				return
+			}
+
+			if err = payload.Validate(); err != nil {
+				log.Printf("failed to validate update request")
+				utils.WriteErr(w, http.StatusBadRequest, err)
+				return
+			}
+
+			if file != nil && header != nil {
+				fileUpload = &ztype.FileUploadDto{File: file, FileKey: payload.Image, Header: header}
+				defer file.Close()
+
+				if err = fileUpload.Validate(); err != nil {
+					log.Printf("failed to validate file")
+					utils.WriteErr(w, http.StatusBadRequest, err)
+					return
+				}
+			}
+		} else {
+			log.Printf("handling as json")
+			payload = &dtos.PropertyModificationRequest{}
+			if err := utils.ParseJSON(r, payload); err != nil {
+				p.logger.LogFields(logrus.Fields{
+					"msg": "fialed to parse json",
+					"err": err,
+				})
+				log.Printf("failed to parse json")
+				utils.WriteErr(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 
-		if err = utils.ParseJSON(r, &payload); err != nil {
-			p.logger.LogFields(logrus.Fields{"msg": "failed to parse required dto fields", "err": err})
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
-
-		if err = payload.Validate(); err != nil {
-			p.logger.LogFields(logrus.Fields{
-				"msg": "dto failed validation",
-				"err": err,
-			})
-
-			utils.WriteErr(w, http.StatusBadRequest, err)
-		}
-
-		property, err := p.ModifyProperty(r.Context(), payload, &fileUpload)
+		property, err := p.ModifyProperty(r.Context(), payload, fileUpload)
 
 		if err != nil {
-			p.logger.LogFields(logrus.Fields{"msg": "database err", "err": err})
+			log.Printf("failed to update property")
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -314,7 +338,7 @@ func (p PropertyHandler) HandleUpdateProperty(w http.ResponseWriter, r *http.Req
 		}
 
 		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
-			p.logger.LogFields(logrus.Fields{"msg": "failed to encode json response", "err": err})
+			log.Printf("failed to create json response")
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 		}
 	}

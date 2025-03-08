@@ -85,31 +85,40 @@ func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, erro
 }
 
 func (p *PropertyRepo) Update(ctx context.Context, prpty any) (interface{}, error) {
-	proptery, ok := prpty.(model.Property)
+	property, ok := prpty.(model.Property)
 
 	if !ok {
+		e := cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		log.Printf("failed type asert in repo %v", e)
 		return model.Property{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
 	}
 
 	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 
 	if err != nil {
+		log.Printf("transaction start fail %v", err)
 		return model.Property{}, ErrTransactionStartFailed{Err: err}
 	}
 
-	rslt, err := tx.NewUpdate().Model(&proptery).Where("? = ?", bun.Ident("pid"), proptery.Pid).Returning("*").Exec(ctx, &proptery)
+	err = tx.NewUpdate().Model(&property).Where("? = ?", bun.Ident("pid"), property.Pid).Returning("*").Scan(ctx, &property)
 
 	if err != nil {
+		log.Printf("failed to update %v", err)
 		if err = tx.Rollback(); err != nil {
 			return nil, err
 		}
 		return nil, err
 	}
 
-	log.Printf("property returned from update %v", proptery)
-	log.Printf("result from property update %v", rslt)
+	log.Printf("property returned from update %v", property)
+	log.Printf("result from property update %v", property)
 
-	return rslt, nil
+	if err = tx.Commit(); err != nil {
+		log.Printf("failed to commit transaction %v", err)
+		return model.Property{}, err
+	}
+
+	return property, nil
 }
 
 func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
@@ -139,4 +148,15 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 		return err
 	}
 	return nil
+}
+
+func (p *PropertyRepo) GetExisting(ctx context.Context, pid string) (model.Property, error) {
+	var property model.Property
+	err := p.GetBunDB().NewSelect().Model(&property).Column("pid", "image").Where("? = ?", bun.Ident("pid"), pid).Scan(ctx, &property)
+
+	if err != nil {
+		return model.Property{}, err
+	}
+
+	return property, nil
 }

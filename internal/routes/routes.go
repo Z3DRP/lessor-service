@@ -93,6 +93,8 @@ func headerMiddleware(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		crane.DefaultLogger.MustDebug(fmt.Sprintf("orign: %v", origin))
+		// log.Printf("🔍 Incoming request: %s %s", r.Method, r.URL.Path)
+		// log.Printf("Headers: %v", r.Header)
 
 		if config.IsValidOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)

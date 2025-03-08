@@ -94,48 +94,32 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 		return nil, err
 	}
 
-	//propertyImgs := make(map[string]string)
-	log.Printf("finding images for owner : %v", filter.Identifier)
-
 	imageUrls, err := p.s3Actor.List(ctx, filter.Identifier)
-	log.Printf("image urls check %+v", imageUrls)
-
-	for k, url := range imageUrls {
-		log.Printf("image url k: %v, url: %v", k, url)
-	}
 
 	if err != nil {
 		if err == api.ErrrNoImagesFound {
 			// no images so return properties found
-			log.Print("properties found but no iamges")
 			for _, prop := range properties {
 				propResponses = append(propResponses, dtos.NewPropertyResponse(prop, nil))
 			}
 			return propResponses, nil
 		}
-		log.Printf("list images response err props found but err occurred %v", err)
 		return nil, err
 	}
 
-	log.Println("all good here about to loop presigned image urls")
-
 	for _, prop := range properties {
 		// prop.Image has the entire s3 path and file key i.e. property/{ownerId}/{objId}/filename
-		log.Printf("looking for property image %v", prop.Image)
 		if url, found := imageUrls[prop.Image]; found {
-			log.Println("found image for property")
 			propResponses = append(propResponses, dtos.NewPropertyResponse(prop, &url))
 		} else {
 			propResponses = append(propResponses, dtos.NewPropertyResponse(prop, nil))
 		}
 	}
 
-	log.Printf("returning responses %+v", propResponses)
-
 	return propResponses, nil
 }
 
-func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.PropertyRequest, fileData *ztype.FileUploadDto) (*model.Property, error) {
+func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.PropertyRequest, fileData *ztype.FileUploadDto) (*dtos.PropertyResponse, error) {
 	property := newPropertyRequest(pdata)
 	var err error
 
@@ -168,39 +152,77 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.Propert
 		return nil, cmerr.ErrUnexpectedData{Wanted: &model.Property{}, Got: newPrpty}
 	}
 
-	return prpty, nil
+	var psUrl *string
+	if property.Image != "" {
+		url, err := p.s3Actor.GetFile(ctx, property.Image)
+
+		if err != nil {
+			return nil, err
+		}
+		psUrl = &url
+	}
+
+	response := dtos.NewPropertyResponseFrmPointer(prpty, psUrl)
+	return &response, nil
 }
 
-func (p PropertyService) ModifyProperty(ctx context.Context, pdto dtos.PropertyModificationRequest, fileData *ztype.FileUploadDto) (model.Property, error) {
+func (p PropertyService) ModifyProperty(ctx context.Context, pdto *dtos.PropertyModificationRequest, fileData *ztype.FileUploadDto) (*dtos.PropertyResponse, error) {
 	prpty := newPropertyModRequest(pdto)
 
 	if prpty.Pid == uuid.Nil {
-		return model.Property{}, services.ErrInvalidRequest{ServiceType: p.ServiceName(), RequestType: "Upate", Err: nil}
+		log.Printf("could not parse property pid as uuid")
+		return nil, services.ErrInvalidRequest{ServiceType: p.ServiceName(), RequestType: "Upate", Err: nil}
 	}
 
-	if fileData != nil {
+	existingPropertyImg, err := p.getExistingPropertyImage(ctx, prpty.Pid.String())
+
+	if err != nil {
+		log.Printf("failed to fetch existing property to check for image")
+		return nil, err
+	}
+
+	if fileData != nil && fileData.File != nil && fileData.Header != nil {
 		fileName, err := p.s3Actor.Upload(ctx, prpty.LessorId.String(), prpty.Pid.String(), fileData)
 
 		if err != nil {
-			return model.Property{}, err
+			log.Printf("error uploading file %v", err)
+			return nil, err
 		}
 
 		prpty.Image = fileName
+	} else {
+		prpty.Image = existingPropertyImg
 	}
 
 	updatePrpty, err := p.repo.Update(ctx, prpty)
 
 	if err != nil {
-		return model.Property{}, err
+		log.Printf("err updating property %v", err)
+		return nil, err
 	}
 
 	property, ok := updatePrpty.(model.Property)
 
 	if !ok {
-		return model.Property{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: updatePrpty}
+		err = cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: updatePrpty}
+		log.Printf("type assertion failed %v", err)
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: updatePrpty}
 	}
 
-	return property, nil
+	var psUrl *string
+	if property.Image != "" {
+		url, err := p.s3Actor.GetFile(ctx, property.Image)
+
+		if err != nil {
+			log.Printf("failed to get file %v", err)
+			return nil, err
+		}
+
+		psUrl = &url
+	}
+
+	response := dtos.NewPropertyResponse(property, psUrl)
+	return &response, nil
 }
 
 func (p PropertyService) DeleteProperty(ctx context.Context, f filters.Filterer) error {
@@ -223,6 +245,15 @@ func (p PropertyService) DeleteProperty(ctx context.Context, f filters.Filterer)
 	return nil
 }
 
+func (p PropertyService) getExistingPropertyImage(ctx context.Context, id string) (string, error) {
+	property, err := p.repo.GetExisting(ctx, id)
+	if err != nil {
+		return "", nil
+	}
+
+	return property.Image, nil
+}
+
 func newPropertyRequest(data *dtos.PropertyRequest) *model.Property {
 	return &model.Property{
 		LessorId:      utils.ParseUuid(data.AlessorId),
@@ -239,19 +270,19 @@ func newPropertyRequest(data *dtos.PropertyRequest) *model.Property {
 	}
 }
 
-func newPropertyModRequest(data dtos.PropertyModificationRequest) *model.Property {
-	return &model.Property{
+func newPropertyModRequest(data *dtos.PropertyModificationRequest) model.Property {
+	return model.Property{
 		Pid:           utils.ParseUuid(data.Pid),
-		LessorId:      utils.ParseUuid(data.Request.AlessorId),
-		Address:       data.Request.Address,
-		Bedrooms:      data.Request.Bedrooms,
-		Baths:         data.Request.Baths,
-		SquareFootage: data.Request.SquareFt,
-		IsAvailable:   data.Request.IsAvailable,
-		Status:        model.PropertyStatus(data.Request.Status),
-		Notes:         data.Request.Notes,
-		TaxRate:       data.Request.TaxRate,
-		TaxAmountDue:  data.Request.TaxAmountDue,
-		MaxOccupancy:  data.Request.MaxOccupancy,
+		LessorId:      utils.ParseUuid(data.AlessorId),
+		Address:       data.Address,
+		Bedrooms:      data.Bedrooms,
+		Baths:         data.Baths,
+		SquareFootage: data.SquareFt,
+		IsAvailable:   data.IsAvailable,
+		Status:        model.PropertyStatus(data.Status),
+		Notes:         data.Notes,
+		TaxRate:       data.TaxRate,
+		TaxAmountDue:  data.TaxAmountDue,
+		MaxOccupancy:  data.MaxOccupancy,
 	}
 }

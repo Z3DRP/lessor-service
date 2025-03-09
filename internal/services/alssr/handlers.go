@@ -48,7 +48,9 @@ func (a AlessorHandler) HandleCreateAlessor(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		alessor, err := a.CreateAlsr(r.Context(), payload)
+		usr := model.User{Uid: utils.ParseUuid(payload.Uid)}
+
+		alessor, err := a.CreateAlsr(r.Context(), &usr)
 		log.Println("returned from service")
 		if err != nil {
 			a.logger.MustDebug(fmt.Sprintf("database err, %v", err))

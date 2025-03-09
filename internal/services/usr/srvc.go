@@ -104,6 +104,28 @@ func (p UserService) GetUsr(ctx context.Context, fltr filters.Filterer) (model.U
 	return profile, nil
 }
 
+func (a *UserService) CreateAlessor(ctx context.Context, usr *model.User) (model.Alessor, error) {
+
+	alessor := model.Alessor{
+		Uid:                       usr.Uid,
+		PaymentIntegrationEnabled: false,
+		TotalProperties:           0,
+	}
+
+	alsr, err := a.repo.Insert(ctx, alessor)
+	if err != nil {
+		log.Printf("faild to create alessor from user %v", err)
+		return model.Alessor{}, err
+	}
+
+	lessor, ok := alsr.(model.Alessor)
+	if !ok {
+		return model.Alessor{}, cmerr.ErrUnexpectedData{Wanted: model.Alessor{}, Got: alsr}
+	}
+
+	return lessor, nil
+}
+
 func (p UserService) GetUsrs(ctx context.Context, fltr filters.Filter) ([]model.User, error) {
 	prfls, err := p.repo.FetchAll(ctx, fltr)
 

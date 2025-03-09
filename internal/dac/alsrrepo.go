@@ -88,7 +88,7 @@ func (a *AlessorRepo) Update(ctx context.Context, alsr any) (interface{}, error)
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	rslt, err := tx.NewUpdate().Model(&al).Where("? = ?", bun.Ident("uid"), al.Uid).Returning("*").Exec(ctx)
+	rslt, err := tx.NewUpdate().Model(&al).OmitZero().Where("? = ?", bun.Ident("uid"), al.Uid).Returning("*").Exec(ctx)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return nil, ErrRollbackFailed{Err: err}

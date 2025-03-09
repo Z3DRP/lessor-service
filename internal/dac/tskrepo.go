@@ -16,8 +16,8 @@ type TaskRepo struct {
 	Limit int
 }
 
-func InitTskRepo(db Persister) *TaskRepo {
-	return &TaskRepo{
+func InitTskRepo(db Persister) TaskRepo {
+	return TaskRepo{
 		Persister: db,
 	}
 }
@@ -90,7 +90,7 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	err = tx.NewUpdate().Model(&tk).WherePK().Returning("*").Scan(ctx, &tk)
+	err = tx.NewUpdate().Model(&tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Returning("*").Scan(ctx, &tk)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return nil, ErrRollbackFailed{err}
@@ -101,6 +101,114 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 	if err = tx.Commit(); err != nil {
 		return nil, ErrTransactionCommitFail{err}
 	}
+	return tk, nil
+}
+
+func (t *TaskRepo) UpdatePriority(ctx context.Context, tsk interface{}) (interface{}, error) {
+	tk, ok := tsk.(model.Task)
+	if !ok {
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+	}
+
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	err = tx.NewUpdate().Model(&tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Set("priority = ?", tk.Priority).Returning("*").Scan(ctx, &tk)
+
+	if err != nil {
+		if err = tx.Rollback(); err != nil {
+			return nil, ErrRollbackFailed{err}
+		}
+		return nil, ErrUpdateFailed{Model: "Task", Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, ErrTransactionCommitFail{err}
+	}
+
+	return tk, nil
+}
+
+func (t *TaskRepo) UpdateStartedAt(ctx context.Context, tsk interface{}) (interface{}, error) {
+	tk, ok := tsk.(model.Task)
+	if !ok {
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+	}
+
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	err = tx.NewUpdate().Model(&tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Set("started_at = ?", tk.StartedAt).Returning("*").Scan(ctx, &tk)
+
+	if err != nil {
+		if err = tx.Rollback(); err != nil {
+			return nil, ErrRollbackFailed{err}
+		}
+		return nil, ErrUpdateFailed{Model: "Task", Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, ErrTransactionCommitFail{err}
+	}
+
+	return tk, nil
+}
+
+func (t *TaskRepo) UpdateCompletedAt(ctx context.Context, tsk interface{}) (interface{}, error) {
+	tk, ok := tsk.(model.Task)
+	if !ok {
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+	}
+
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	err = tx.NewUpdate().Model(&tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Set("completed_at = ?", tk.CompletedAt).Returning("*").Scan(ctx, &tk)
+
+	if err != nil {
+		if err = tx.Rollback(); err != nil {
+			return nil, ErrRollbackFailed{err}
+		}
+		return nil, ErrUpdateFailed{Model: "Task", Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, ErrTransactionCommitFail{err}
+	}
+
+	return tk, nil
+}
+
+func (t *TaskRepo) UpdatePausedAt(ctx context.Context, tsk interface{}) (interface{}, error) {
+	tk, ok := tsk.(model.Task)
+	if !ok {
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+	}
+
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	err = tx.NewUpdate().Model(&tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Set("paused_at = ?", tk.PausedAt).Returning("*").Scan(ctx, &tk)
+
+	if err != nil {
+		if err = tx.Rollback(); err != nil {
+			return nil, ErrRollbackFailed{err}
+		}
+		return nil, ErrUpdateFailed{Model: "Task", Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, ErrTransactionCommitFail{err}
+	}
+
 	return tk, nil
 }
 

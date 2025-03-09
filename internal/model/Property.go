@@ -28,21 +28,21 @@ type Address struct {
 type Property struct {
 	bun.BaseModel `bun:"table:properties,alias:p"`
 
-	Id            int64           `bun:"column:id,pk,autoincrement"`
-	Pid           uuid.UUID       `bun:"type:uuid,notnull,unique"`
-	LessorId      uuid.UUID       `bun:"type:uuid,notnull"`
-	Alessor       *Alessor        `bun:"rel:belongs-to,join:lessor_id=uid"`
-	Address       json.RawMessage `bun:"type:jsonb,json_use_number"`
-	Bedrooms      float64         `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
-	Baths         float64         `bun:"type:numeric(5,2),notnull,nullzero,default:0"`
-	SquareFootage float64         `bun:"type:numeric(10,4),nullzero"`
-	IsAvailable   bool            `bun:",nullzero"`
-	Status        PropertyStatus  `bun:"type:property_status,default:'unknown'"`
-	Notes         string          `bun:"type:text,nullzero"`
-	Image         string          `bun:"type:varchar(255),nullzero"`
-	TaxRate       float64         `bun:"type:numeric(10,4),nullzero"`
-	TaxAmountDue  float64         `bun:"type:numeric(10,2)"`
-	MaxOccupancy  int             `bun:",nullzero"`
+	Id            int64           `bun:"column:id,pk,autoincrement" json:"-"`
+	Pid           uuid.UUID       `bun:"type:uuid,notnull,unique" json:"pid"`
+	LessorId      uuid.UUID       `bun:"type:uuid,notnull" json:"alessorId"`
+	Alessor       *Alessor        `bun:"rel:belongs-to,join:lessor_id=uid" json:"alessor"`
+	Address       json.RawMessage `bun:"type:jsonb,json_use_number" json:"address"`
+	Bedrooms      float64         `bun:"type:numeric(5,2),notnull,nullzero,default:0" json:"bedrooms"`
+	Baths         float64         `bun:"type:numeric(5,2),notnull,nullzero,default:0" json:"baths"`
+	SquareFootage float64         `bun:"type:numeric(10,4),nullzero" json:"squareFootage"`
+	IsAvailable   bool            `bun:",nullzero" json:"isAvailable"`
+	Status        PropertyStatus  `bun:"type:property_status,default:'unknown'" json:"status"`
+	Notes         string          `bun:"type:text,nullzero" json:"notes"`
+	Image         string          `bun:"type:varchar(255),nullzero" json:"image"`
+	TaxRate       float64         `bun:"type:numeric(10,4),nullzero" json:"taxRate"`
+	TaxAmountDue  float64         `bun:"type:numeric(10,2)" json:"taxAmountDue"`
+	MaxOccupancy  int             `bun:",nullzero" json:"maxOccupancy"`
 }
 
 func (p Property) Info() string {

@@ -3,8 +3,11 @@ package task
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"log"
+	"time"
 
-	"github.com/Z3DRP/alessor-service/pkg/utils"
 	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/crane"
@@ -12,6 +15,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/internal/services"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/google/uuid"
 )
@@ -111,8 +115,8 @@ func (t TaskService) GetTasks(ctx context.Context, fltr filters.Filterer) ([]dto
 }
 
 // when add images need to pass in the file data here
-func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
-	tsk := newTaskFrmRequest(tdata)
+func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskRequest) (*dtos.TaskResponse, error) {
+	tsk := newTaskFrmPtrRequest(tdata)
 	var err error
 
 	tsk.Tid, err = uuid.NewRandom()
@@ -158,7 +162,173 @@ func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskModRequest)
 	return &response, nil
 }
 
-func newTaskFrmRequest(data dtos.TaskRequest) *model.Task {
+// when refactoring to use images will have to pass in *ztype.FileUploadDto
+func (t TaskService) ModifyTask(ctx context.Context, tdto *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
+	tsk := newTaskFrmModRequest(tdto)
+
+	if tsk.Tid == uuid.Nil {
+		log.Printf("could not parse task pid as uuid")
+		return nil, services.ErrInvalidRequest{ServiceType: t.ServiceName(), RequestType: "update"}
+	}
+
+	updatedTask, err := t.repo.Update(ctx, tsk)
+
+	if err != nil {
+		log.Printf("fialed to update task %v", err)
+		return nil, err
+	}
+
+	task, ok := updatedTask.(model.Task)
+
+	if !ok {
+		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: updatedTask}
+		log.Printf("type assertion failed %v", err)
+		return nil, err
+	}
+
+	response := dtos.NewTaskResposne(task, nil)
+	return &response, nil
+}
+
+func (t TaskService) ModifyTaskPririty(ctx context.Context, tdo *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
+	pid, err := uuid.Parse(tdo.Tid)
+	if err != nil {
+		return nil, fmt.Errorf("invalid task id %v", err)
+	}
+
+	tsk, err := t.repo.UpdatePriority(ctx, model.Task{PropertyId: pid, Priority: model.PriorityLevel(tdo.Priority)})
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify priority %v", err)
+	}
+
+	task, ok := tsk.(model.Task)
+	if !ok {
+		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+		log.Printf("type assertion failed %v", err)
+		return nil, err
+	}
+
+	response := dtos.NewTaskResposne(task, nil)
+	return &response, nil
+}
+
+func (t TaskService) AssignTask(ctx context.Context, tdo *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
+	pid, err := uuid.Parse(tdo.Tid)
+	if err != nil {
+		return nil, fmt.Errorf("invalid task id %v", err)
+	}
+
+	wid, err := uuid.Parse(tdo.WorkerId)
+	if err != nil {
+		return nil, fmt.Errorf("")
+	}
+
+	tsk, err := t.repo.UpdateStartedAt(ctx, model.Task{PropertyId: pid, WorkerId: wid, StartedAt: time.Now()})
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify priority %v", err)
+	}
+
+	task, ok := tsk.(model.Task)
+	if !ok {
+		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+		log.Printf("type assertion failed %v", err)
+		return nil, err
+	}
+
+	response := dtos.NewTaskResposne(task, nil)
+	return &response, nil
+}
+
+func (t TaskService) CompleteTask(ctx context.Context, tdo *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
+	pid, err := uuid.Parse(tdo.Tid)
+	if err != nil {
+		return nil, fmt.Errorf("invalid task id %v", err)
+	}
+
+	tsk, err := t.repo.UpdateCompletedAt(ctx, model.Task{PropertyId: pid, CompletedAt: time.Now()})
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify priority %v", err)
+	}
+
+	task, ok := tsk.(model.Task)
+	if !ok {
+		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+		log.Printf("type assertion failed %v", err)
+		return nil, err
+	}
+
+	response := dtos.NewTaskResposne(task, nil)
+	return &response, nil
+}
+
+func (t TaskService) PauseTask(ctx context.Context, tdo *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
+	pid, err := uuid.Parse(tdo.Tid)
+	if err != nil {
+		return nil, fmt.Errorf("invalid task id %v", err)
+	}
+
+	tsk, err := t.repo.UpdatePausedAt(ctx, model.Task{PropertyId: pid, StartedAt: time.Now()})
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify priority %v", err)
+	}
+
+	task, ok := tsk.(model.Task)
+	if !ok {
+		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+		log.Printf("type assertion failed %v", err)
+		return nil, err
+	}
+
+	response := dtos.NewTaskResposne(task, nil)
+	return &response, nil
+}
+
+func (t TaskService) UnPauseTask(ctx context.Context, tdo *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
+	pid, err := uuid.Parse(tdo.Tid)
+	if err != nil {
+		return nil, fmt.Errorf("invalid task id %v", err)
+	}
+
+	var nilTime time.Time
+
+	tsk, err := t.repo.UpdatePausedAt(ctx, model.Task{PropertyId: pid, StartedAt: time.Now(), PausedAt: nilTime})
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify priority %v", err)
+	}
+
+	task, ok := tsk.(model.Task)
+	if !ok {
+		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+		log.Printf("type assertion failed %v", err)
+		return nil, err
+	}
+
+	response := dtos.NewTaskResposne(task, nil)
+	return &response, nil
+}
+
+func (t TaskService) DeleteTask(ctx context.Context, f filters.Filterer) error {
+	fltr, ok := f.(filters.IdFilter)
+
+	if !ok {
+		return errors.New("fialed to create id filter")
+	}
+
+	if err := fltr.Validate(); err != nil {
+		return fmt.Errorf("invalid request %v", err)
+	}
+
+	tid, _ := uuid.Parse(fltr.Identifier)
+	err := t.repo.Delete(ctx, model.Task{Tid: tid})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewTaskFrmRequest(data dtos.TaskRequest) *model.Task {
 	return &model.Task{
 		LessorId:    utils.ParseUuid(data.LessorId),
 		PropertyId:  utils.ParseUuid(data.PropertyId),

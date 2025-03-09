@@ -119,7 +119,7 @@ func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	rslt, err := tx.NewUpdate().Model(&pf).Where("? = ?", bun.Ident("uid"), pf.Uid).Returning("*").Exec(ctx, &pf)
+	rslt, err := tx.NewUpdate().Model(&pf).OmitZero().Where("? = ?", bun.Ident("uid"), pf.Uid).Returning("*").Exec(ctx, &pf)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return nil, err

@@ -21,6 +21,7 @@ type TaskResponse struct {
 	FailedReason string        `json:"failedReason"`
 	WorkerId     string        `json:"workerId"`
 	Worker       *model.Worker `json:"worker"`
+	Priority     string        `json:"priority"`
 	Image        string        `json:"image"`
 	ImageUrl     *string       `json:"imageUrl"`
 }
@@ -45,6 +46,7 @@ func NewTaskResposne(t model.Task, url *string) TaskResponse {
 		FailedReason: t.FailedReason,
 		WorkerId:     t.WorkerId.String(),
 		Worker:       t.Worker,
+		Priority:     string(t.Priority),
 		Image:        t.Image,
 		ImageUrl:     url,
 	}
@@ -66,6 +68,7 @@ func NewTaskResposneFrmPntr(t *model.Task, url *string) TaskResponse {
 		FailedReason: t.FailedReason,
 		WorkerId:     t.WorkerId.String(),
 		Worker:       t.Worker,
+		Priority:     string(t.Priority),
 		Image:        t.Image,
 		ImageUrl:     url,
 	}
@@ -80,6 +83,7 @@ type TaskRequest struct {
 	ScheduledAt time.Time `json:"scheduledAt"`
 	WorkerId    string    `json:"workerId"`
 	Image       string    `json:"image"`
+	Priority    string    `json:"priority"`
 }
 
 func (t TaskRequest) Validate() error {
@@ -101,6 +105,7 @@ type TaskModRequest struct {
 	FailedReason string    `json:"failedReason"`
 	WorkerId     string    `json:"workerId"`
 	Image        string    `json:"image"`
+	Priority     string    `json:"priority"`
 }
 
 func (t TaskModRequest) Validate() error {

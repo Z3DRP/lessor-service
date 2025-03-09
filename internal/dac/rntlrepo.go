@@ -12,52 +12,52 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type PropertyRepo struct {
+type RentalPropertyRepo struct {
 	Persister
 }
 
-func InitPrptyRepo(db Persister) PropertyRepo {
-	return PropertyRepo{
+func InitRentalPrptyRepo(db Persister) RentalPropertyRepo {
+	return RentalPropertyRepo{
 		Persister: db,
 	}
 }
 
-func (p *PropertyRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
-	var prpty model.Property
+func (p *RentalPropertyRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{}, error) {
+	var prpty model.RentalProperty
 	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := p.GetBunDB().NewSelect().Model(&prpty).
 		Where("? = ?", bun.Ident("pid"), fltr.Identifier).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &prpty)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNoResults{Shape: "Property", Identifier: fltr.Identifier, Err: err}
+			return nil, ErrNoResults{Shape: "Rental Property", Identifier: fltr.Identifier, Err: err}
 		}
-		return nil, ErrFetchFailed{Model: "Property", Err: err}
+		return nil, ErrFetchFailed{Model: "Rental Property", Err: err}
 	}
 
 	return prpty, nil
 }
 
-func (p *PropertyRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Property, error) {
-	var propertys []model.Property
+func (p *RentalPropertyRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.RentalProperty, error) {
+	var propertys []model.RentalProperty
 	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := p.GetBunDB().NewSelect().Model(&propertys).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &propertys)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNoResults{Shape: model.Property{}, Identifier: "[fetch-all]", Err: err}
+			return nil, ErrNoResults{Shape: model.RentalProperty{}, Identifier: "[fetch-all]", Err: err}
 		}
-		return nil, ErrFetchFailed{Model: "Property", Err: err}
+		return nil, ErrFetchFailed{Model: "Rental Property", Err: err}
 	}
 
 	return propertys, nil
 }
 
-func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, error) {
-	property, ok := prpty.(*model.Property)
+func (p *RentalPropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, error) {
+	property, ok := prpty.(*model.RentalProperty)
 
 	if !ok {
-		return nil, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.RentalProperty{}, Got: prpty}
 	}
 
 	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
@@ -71,33 +71,33 @@ func (p *PropertyRepo) Insert(ctx context.Context, prpty any) (interface{}, erro
 	if err != nil {
 		log.Printf("db err: %v", err)
 		if err = tx.Rollback(); err != nil {
-			return model.Property{}, err
+			return model.RentalProperty{}, err
 		}
-		return nil, ErrInsertFailed{Model: "Property", Err: err}
+		return nil, ErrInsertFailed{Model: "Rental Property", Err: err}
 	}
 
 	if err = tx.Commit(); err != nil {
 		log.Printf("failed to commit tx %v", err)
-		return model.Property{}, err
+		return model.RentalProperty{}, err
 	}
 
 	return property, nil
 }
 
-func (p *PropertyRepo) Update(ctx context.Context, prpty any) (interface{}, error) {
-	property, ok := prpty.(model.Property)
+func (p *RentalPropertyRepo) Update(ctx context.Context, prpty any) (interface{}, error) {
+	property, ok := prpty.(model.RentalProperty)
 
 	if !ok {
-		e := cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		e := cmerr.ErrUnexpectedData{Wanted: model.RentalProperty{}, Got: prpty}
 		log.Printf("failed type asert in repo %v", e)
-		return model.Property{}, cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		return model.RentalProperty{}, cmerr.ErrUnexpectedData{Wanted: model.RentalProperty{}, Got: prpty}
 	}
 
 	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 
 	if err != nil {
 		log.Printf("transaction start fail %v", err)
-		return model.Property{}, ErrTransactionStartFailed{Err: err}
+		return model.RentalProperty{}, ErrTransactionStartFailed{Err: err}
 	}
 
 	err = tx.NewUpdate().Model(&property).OmitZero().Where("? = ?", bun.Ident("pid"), property.Pid).Returning("*").Scan(ctx, &property)
@@ -110,23 +110,19 @@ func (p *PropertyRepo) Update(ctx context.Context, prpty any) (interface{}, erro
 		return nil, err
 	}
 
-	log.Printf("property returned from update %v", property)
-	log.Printf("result from property update %v", property)
-
 	if err = tx.Commit(); err != nil {
 		log.Printf("failed to commit transaction %v", err)
-		return model.Property{}, err
+		return model.RentalProperty{}, err
 	}
 
 	return property, nil
 }
 
-func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
-	property, ok := prpty.(model.Property)
-	log.Printf("deleting property: %v", property)
+func (p *RentalPropertyRepo) Delete(ctx context.Context, prpty any) error {
+	property, ok := prpty.(model.RentalProperty)
 
 	if !ok {
-		return cmerr.ErrUnexpectedData{Wanted: model.Property{}, Got: prpty}
+		return cmerr.ErrUnexpectedData{Wanted: model.RentalProperty{}, Got: prpty}
 	}
 
 	tx, err := p.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
@@ -150,12 +146,12 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 	return nil
 }
 
-func (p *PropertyRepo) GetExisting(ctx context.Context, pid string) (model.Property, error) {
-	var property model.Property
-	err := p.GetBunDB().NewSelect().Model(&property).Column("pid", "image").Where("? = ?", bun.Ident("pid"), pid).Scan(ctx, &property)
+func (p *RentalPropertyRepo) GetExisting(ctx context.Context, pid string) (model.RentalProperty, error) {
+	var property model.RentalProperty
+	err := p.GetBunDB().NewSelect().Model(&property).Column("pid").Where("? = ?", bun.Ident("pid"), pid).Scan(ctx, &property)
 
 	if err != nil {
-		return model.Property{}, err
+		return model.RentalProperty{}, err
 	}
 
 	return property, nil

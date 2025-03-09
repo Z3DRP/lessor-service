@@ -3,6 +3,7 @@ package alssr
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/crane"
@@ -58,7 +59,29 @@ func (a *AlessorService) GetAlsrs(ctx context.Context, fltr filters.Filter) ([]m
 	return alsrs, nil
 }
 
-func (a *AlessorService) CreateAlsr(ctx context.Context, adto dtos.AlessorRequest) (model.Alessor, error) {
+func (a *AlessorService) CreateAlsr(ctx context.Context, usr *model.User) (model.Alessor, error) {
+
+	alessor := model.Alessor{
+		Uid:                       usr.Uid,
+		PaymentIntegrationEnabled: false,
+		TotalProperties:           0,
+	}
+
+	alsr, err := a.repo.Insert(ctx, alessor)
+	if err != nil {
+		log.Printf("faild to create alessor from user %v", err)
+		return model.Alessor{}, err
+	}
+
+	lessor, ok := alsr.(model.Alessor)
+	if !ok {
+		return model.Alessor{}, cmerr.ErrUnexpectedData{Wanted: model.Alessor{}, Got: alsr}
+	}
+
+	return lessor, nil
+}
+
+func (a *AlessorHandler) AddAlessorProfile(ctx context.Context, adto dtos.AlessorRequest) (model.Alessor, error) {
 	al := newAlessor(adto)
 
 	if al.Uid == uuid.Nil {

@@ -15,15 +15,26 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/middlewares"
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
 	"github.com/Z3DRP/lessor-service/internal/services/property"
+	rentalproperty "github.com/Z3DRP/lessor-service/internal/services/rentalProperty"
+	"github.com/Z3DRP/lessor-service/internal/services/task"
 	"github.com/Z3DRP/lessor-service/internal/services/usr"
+	"github.com/Z3DRP/lessor-service/internal/services/worker"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func NewServer(sconfig *config.ZServerConfig, alsrHndlr alssr.AlessorHandler, usrHndlr usr.UserHandler, prptyHandler property.PropertyHandler) (*http.Server, error) {
+func NewServer(
+	sconfig *config.ZServerConfig,
+	alessorHndlr alssr.AlessorHandler,
+	usrHndlr usr.UserHandler,
+	propertyHndlr property.PropertyHandler,
+	taskHndlr task.TaskHandler,
+	rentalPropertyHndlr rentalproperty.RentalPropertyHandler,
+	workerHndlr worker.WorkerHandler,
+) (*http.Server, error) {
 
 	mux := http.NewServeMux()
-	registerRoutes(mux, alsrHndlr, usrHndlr, prptyHandler)
+	registerRoutes(mux, alessorHndlr, usrHndlr, propertyHndlr, taskHndlr, rentalPropertyHndlr, workerHndlr)
 
 	mwChain := middlewares.MiddlewareChain(handlePanic, loggerMiddleware, headerMiddleware, contextMiddleware)
 	server := &http.Server{
@@ -36,29 +47,63 @@ func NewServer(sconfig *config.ZServerConfig, alsrHndlr alssr.AlessorHandler, us
 	return server, nil
 }
 
-func registerRoutes(mux *http.ServeMux, aHndlr alssr.AlessorHandler, uHndlr usr.UserHandler, pHndlr property.PropertyHandler) {
-	mux.HandleFunc("POST /sign-in", uHndlr.HandleLogin)
-	mux.HandleFunc("POST /sign-up", uHndlr.HandleSignUp)
-	mux.HandleFunc("GET /user-details", uHndlr.HandleGetDetails)
-	mux.HandleFunc("GET /alessor", aHndlr.HandleGetAlessors)
-	mux.HandleFunc("GET /alessor/{id}", aHndlr.HandleGetAlessor)
-	mux.HandleFunc("POST /alessor/{id}", aHndlr.HandleCreateAlessor)
-	mux.HandleFunc("PUT /alessor/{id}", aHndlr.HandleUpdateAlessor)
-	mux.HandleFunc("DELETE /alessor/{id}", aHndlr.HandleDeleteAlessor)
-	mux.HandleFunc("GET /user", uHndlr.HandleGetUsers) // admin or alessors route only
-	mux.HandleFunc("GET /user/{id}", uHndlr.HandleGetUser)
-	mux.HandleFunc("POST /user/{id}", uHndlr.HandleCreateUser)
-	mux.HandleFunc("PUT /user/{id}", uHndlr.HandleUpdateUser)
-	mux.HandleFunc("DELETE /user/{id}", uHndlr.HandleDeleteUser)
+func registerRoutes(
+	mux *http.ServeMux,
+	aHandler alssr.AlessorHandler,
+	uHandler usr.UserHandler,
+	pHandler property.PropertyHandler,
+	tHandler task.TaskHandler,
+	rpHandler rentalproperty.RentalPropertyHandler,
+	wHandler worker.WorkerHandler,
+) {
+	mux.HandleFunc("POST /sign-in", uHandler.HandleLogin)
+	mux.HandleFunc("POST /sign-up", uHandler.HandleSignUp)
+
+	mux.HandleFunc("GET /alessor", aHandler.HandleGetAlessors)
+	mux.HandleFunc("GET /alessor/{id}", aHandler.HandleGetAlessor)
+	mux.HandleFunc("POST /alessor/{id}", aHandler.HandleCreateAlessor)
+	mux.HandleFunc("PUT /alessor/{id}", aHandler.HandleUpdateAlessor)
+	mux.HandleFunc("DELETE /alessor/{id}", aHandler.HandleDeleteAlessor)
+
+	mux.HandleFunc("GET /user", uHandler.HandleGetUsers) // admin or alessors route only
+	mux.HandleFunc("GET /user/{id}", uHandler.HandleGetUser)
+	mux.HandleFunc("POST /user/{id}", uHandler.HandleCreateUser)
+	mux.HandleFunc("PUT /user/{id}", uHandler.HandleUpdateUser)
+	mux.HandleFunc("DELETE /user/{id}", uHandler.HandleDeleteUser)
+	mux.HandleFunc("GET /user-details", uHandler.HandleGetDetails)
+
 	// need to update this to be more restful properties needs to be property/alsrId but
 	// but alessor id is needed and is triggering property/pid api doesnt
 	// know if its alessor id or propertyId so for now just use /properties/id
-	mux.HandleFunc("GET /properties/{id}", pHndlr.HandleGetProperties)
-	mux.HandleFunc("GET /property", pHndlr.HandleGetProperty)
-	mux.HandleFunc("GET /property/{id}", pHndlr.HandleGetProperty)
-	mux.HandleFunc("POST /property", pHndlr.HandleCreateProperty)
-	mux.HandleFunc("PUT /property/{id}", pHndlr.HandleUpdateProperty)
-	mux.HandleFunc("DELETE /property/{id}", pHndlr.HandleDeleteProperty)
+	mux.HandleFunc("GET /property", pHandler.HandleGetProperty)
+	mux.HandleFunc("GET /properties/{id}", pHandler.HandleGetProperties)
+	mux.HandleFunc("GET /property/{id}", pHandler.HandleGetProperty)
+	mux.HandleFunc("POST /property", pHandler.HandleCreateProperty)
+	mux.HandleFunc("PUT /property/{id}", pHandler.HandleUpdateProperty)
+	mux.HandleFunc("DELETE /property/{id}", pHandler.HandleDeleteProperty)
+
+	mux.HandleFunc("GET /task/", tHandler.HandleGetTasks)
+	mux.HandleFunc("GET /task/{id}", tHandler.HandleGetTask)
+	mux.HandleFunc("POST /task", tHandler.HandleCreateTask)
+	mux.HandleFunc("PUT /task/{id}", tHandler.HandleUpdateTask)
+	mux.HandleFunc("DELETE /task/{id}", tHandler.HandleDeleteTask)
+	mux.HandleFunc("PUT /task/{id}/priority", tHandler.HandleUpdatePriority)
+	mux.HandleFunc("PUT /task/{id}/assign", tHandler.HandleAssignTask)
+	mux.HandleFunc("PUT /task/{id}/complete", tHandler.HandleCompleteTask)
+	mux.HandleFunc("PUT /task/{id}/pause", tHandler.HandlePauseTask)
+	mux.HandleFunc("PUT /task/{id}/unpause", tHandler.HandleUnPauseTask)
+
+	mux.HandleFunc("GET /rental-property", rpHandler.HandleGetRentalProperties)
+	mux.HandleFunc("GET /rental-property/{id}", rpHandler.HandleDeleteRentalProperty)
+	mux.HandleFunc("POST /rental", rpHandler.HandleCreateRentalProperty)
+	mux.HandleFunc("PUT /rental/{id}", rpHandler.HandleUpdateRentalProperty)
+	mux.HandleFunc("DELETE /rental/{id}", rpHandler.HandleDeleteRentalProperty)
+
+	mux.HandleFunc("GET /worker", wHandler.HandleGetWorkers)
+	mux.HandleFunc("GET /worker/{id}", wHandler.HandleGetWorker)
+	mux.HandleFunc("POST /worker", wHandler.HandleCreateWorker)
+	mux.HandleFunc("PUT /worker/{id}", wHandler.HandleUpdateWorker)
+	mux.HandleFunc("DELETE /worker/{id}", wHandler.HandleDeleteWorker)
 }
 
 // make this unexported after jwt in use

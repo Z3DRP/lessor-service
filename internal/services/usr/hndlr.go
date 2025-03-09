@@ -14,13 +14,33 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/internal/services/alssr"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
+type UserExtendedService struct {
+	UserService
+	alssr.AlessorService
+}
+
+func (u *UserExtendedService) ServiceName() string {
+	return "Extended User"
+}
+
+func (u UserExtendedService) ServiceNames() []string {
+	names := []string{
+		"user",
+		"alessor",
+	}
+	return names
+}
+
 type UserHandler struct {
 	UserService
+	alssr.AlessorService
+	//UserExtendedService
 }
 
 func NewHandler(service UserService) UserHandler {
@@ -123,6 +143,15 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 			u.logger.MustDebug(fmt.Sprintf("database err %v", err))
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			log.Println(err)
+			return
+		}
+
+		// create a initial alessor profile for the user
+		_, err = u.CreateAlessor(r.Context(), user)
+
+		if err != nil {
+			log.Printf("failed to create alessor profile %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}
 

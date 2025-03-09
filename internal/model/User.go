@@ -12,20 +12,20 @@ import (
 type User struct {
 	bun.BaseModel `bun:"table:users,alias:u"`
 
-	Id          int64                  `bun:"column:id,pk,autoincrement"`
-	Uid         uuid.UUID              `bun:"type:uuid,notnull,unique"`
-	FirstName   string                 `bun:"type:varchar(250),notnull"`
-	LastName    string                 `bun:"type:varchar(250),notnull"`
-	Address     map[string]interface{} `bun:"type:json,json_use_number"`
-	Email       string                 `bun:"type:varchar(150),unique,notnull"`
-	Phone       string                 `bun:"type:varchar(12),notnull"`
-	ProfileType string                 `bun:"type:varchar(100),notnull"`
-	Username    string                 `bun:"type:varchar(30),unique,notnull"`
-	Password    string                 `bun:"type:varchar(128),nullzero"`
-	IsActive    bool                   `bun:"column:is_active,notnull"`
-	AvatarFile  string                 `bun:"type:varchar(100),nullzero"`
-	CreatedAt   time.Time              `bun:"type:timestamptz,nullzero,notnull,default:current_timestamp"`
-	UpdatedAt   time.Time              `bun:"type:timestamptz,nullzero,notnull,default:current_timestamp"`
+	Id          int64                  `bun:"column:id,pk,autoincrement" json:"-"`
+	Uid         uuid.UUID              `bun:"type:uuid,notnull,unique" json:"uid"`
+	FirstName   string                 `bun:"type:varchar(250),notnull" json:"firstName"`
+	LastName    string                 `bun:"type:varchar(250),notnull" json:"lastName"`
+	Address     map[string]interface{} `bun:"type:json,json_use_number" json:"address"`
+	Email       string                 `bun:"type:varchar(150),unique,notnull" json:"email"`
+	Phone       string                 `bun:"type:varchar(12),notnull" json:"phone"`
+	ProfileType string                 `bun:"type:varchar(100),notnull" json:"profileType"`
+	Username    string                 `bun:"type:varchar(30),unique,notnull" json:"username"`
+	Password    string                 `bun:"type:varchar(128),nullzero" json:"-"`
+	IsActive    bool                   `bun:"column:is_active,notnull" json:"isActive"`
+	AvatarFile  string                 `bun:"type:varchar(100),nullzero" json:"avatarFile"`
+	CreatedAt   time.Time              `bun:"type:timestamptz,nullzero,notnull,default:current_timestamp" json:"-"`
+	UpdatedAt   time.Time              `bun:"type:timestamptz,nullzero,notnull,default:current_timestamp" json:"-"`
 }
 
 var _ bun.BeforeAppendModelHook = (*User)(nil)

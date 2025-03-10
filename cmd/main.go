@@ -25,7 +25,7 @@ import (
 
 func run() error {
 	configPath := os.Getenv("configPath")
-	log.Println("starting server setup")
+	log.Println("starting server setup...")
 
 	if configPath == "" {
 		configPath = "./config"
@@ -38,6 +38,7 @@ func run() error {
 		return configErr
 	}
 
+	log.Printf("initializing database...")
 	dbConnection, err := dac.DbCon(&apiConfig.DatabaseStore)
 
 	if err != nil {
@@ -57,6 +58,7 @@ func run() error {
 		return err
 	}
 
+	log.Printf("initializing services...")
 	// creating usr service will never return err so ignore it
 	usrService, _ := factories.ServiceFactory("User", dbStore, crane.DefaultLogger)
 	usrHandler, err := factories.HandlerFactory(usrService.ServiceName(), usrService)
@@ -81,6 +83,7 @@ func run() error {
 
 	taskHandler, err := factories.HandlerFactory(taskService.ServiceName(), taskService)
 	if err != nil {
+		log.Printf("task err: %v", err)
 		return cmerr.ErrUnexpectedData{Wanted: taskHandler, Got: taskHandler}
 	}
 
@@ -93,6 +96,7 @@ func run() error {
 	workerService, _ := factories.ServiceFactory("Worker", dbStore, crane.DefaultLogger)
 	workerHandler, err := factories.HandlerFactory(workerService.ServiceName(), workerService)
 	if err != nil {
+		log.Printf("worker hndlr er %v", err)
 		return factories.ErrFailedServiceStart{ServiceName: workerService.ServiceName(), Err: err}
 	}
 
@@ -126,12 +130,13 @@ func run() error {
 		return cmerr.ErrUnexpectedData{Wanted: worker.WorkerHandler{}, Got: wHandler}
 	}
 
-	zserver, err := routes.NewServer(&apiConfig.ZServer, aHandler, uHandler, pHandler, tHandler, rpHandler)
+	zserver, err := routes.NewServer(&apiConfig.ZServer, aHandler, uHandler, pHandler, tHandler, rpHandler, wHandler)
 	if err != nil {
 		crane.DefaultLogger.MustDebug(fmt.Sprintf("fatal error creating server, %v", err))
 		return err
 	}
 
+	log.Println("finished...")
 	crane.DefaultLogger.MustDebug("server is live and running")
 	log.Println("Server is live and running on 8087")
 

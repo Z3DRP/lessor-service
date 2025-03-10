@@ -25,7 +25,7 @@ type WorkerService struct {
 }
 
 func (p WorkerService) ServiceName() string {
-	return "Property"
+	return "Worker"
 }
 
 // TODO when adding images will have to pass in s3Actor

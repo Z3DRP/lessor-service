@@ -42,19 +42,19 @@ func ServiceFactory(serviceName string, store dac.Persister, logger *crane.Zlogr
 		return property.NewPropertyService(repo, actor, logger), nil
 	case "task":
 		repo := dac.InitTskRepo(store)
-		s3Dir, err := ServiceS3Dir(serviceName)
+		//s3Dir, err := ServiceS3Dir(serviceName)
 
-		if err != nil {
-			return nil, err
-		}
+		// if err != nil {
+		// 	return nil, err
+		// }
 
-		actor, err := api.NewS3Actor(context.TODO(), s3Dir)
+		// actor, err := api.NewS3Actor(context.TODO(), s3Dir)
 
-		if err != nil {
-			return nil, err
-		}
+		// if err != nil {
+		// 	return nil, err
+		// }
 
-		return task.NewTaskService(repo, actor, logger), nil
+		return task.NewTaskService(repo, logger), nil
 	case "rental property":
 		repo := dac.InitRentalPrptyRepo(store)
 		return rentalproperty.NewRentalPropertyService(repo, logger), nil
@@ -86,7 +86,7 @@ func HandlerFactory(handlerName string, service services.Service) (services.Hand
 			return nil, ErrWrongServiceInject{ServiceName: service.ServiceName(), HandlerName: "property"}
 		}
 		return property.NewHandler(pSrvc), nil
-	case "tasks":
+	case "task":
 		tskSrvc, ok := service.(task.TaskService)
 		if !ok {
 			return nil, ErrWrongServiceInject{ServiceName: service.ServiceName(), HandlerName: "task"}

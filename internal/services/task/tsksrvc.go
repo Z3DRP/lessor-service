@@ -30,11 +30,11 @@ func (t TaskService) ServiceName() string {
 	return "Task"
 }
 
-func NewTaskService(repo dac.TaskRepo, actr api.S3Actor, logr *crane.Zlogrus) TaskService {
+func NewTaskService(repo dac.TaskRepo, logr *crane.Zlogrus) TaskService {
 	return TaskService{
-		repo:    repo,
-		s3Actor: actr,
-		logger:  logr,
+		repo: repo,
+		//s3Actor: actr,
+		logger: logr,
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/Z3DRP/lessor-service/internal/api"
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/crane"
 	"github.com/Z3DRP/lessor-service/internal/dac"
@@ -21,9 +20,9 @@ import (
 )
 
 type TaskService struct {
-	repo    dac.TaskRepo
-	logger  *crane.Zlogrus
-	s3Actor api.FilePersister
+	repo   dac.TaskRepo
+	logger *crane.Zlogrus
+	//s3Actor api.FilePersister
 }
 
 func (t TaskService) ServiceName() string {
@@ -60,8 +59,6 @@ func (t TaskService) GetTask(ctx context.Context, fltr filters.Filterer) (*dtos.
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
 
-	var tskDto dtos.TaskResponse
-
 	// if tsk.Image != "" {
 	// 	fileUrl, err := t.s3Actor.Get(ctx, task.LessorId.String(), task.Tid.String(), task.Image)
 	// 	if err != nil {
@@ -70,7 +67,7 @@ func (t TaskService) GetTask(ctx context.Context, fltr filters.Filterer) (*dtos.
 
 	// 	tskDto = dtos.NewTaskResponse(task, &fileUrl)
 	// }
-	tskDto = dtos.NewTaskResposne(task, nil)
+	tskDto := dtos.NewTaskResposne(task, nil)
 
 	return &tskDto, nil
 }
@@ -80,12 +77,15 @@ func (t TaskService) GetTasks(ctx context.Context, fltr filters.Filterer) ([]dto
 	filter, ok := fltr.(filters.Filter)
 
 	if !ok {
+		log.Println("invlaid filter assert ")
 		return nil, filters.NewFailedToMakeFilterErr("uuid filter")
 	}
 
+	log.Println("calling service repo method")
 	tasks, err := t.repo.FetchAll(ctx, filter)
 
 	if err != nil {
+		log.Printf("db err in service %v", err)
 		if err == sql.ErrNoRows {
 			return nil, dac.ErrNoResults{Err: err, Shape: tskReponses, Identifier: "all"}
 		}
@@ -111,20 +111,24 @@ func (t TaskService) GetTasks(ctx context.Context, fltr filters.Filterer) ([]dto
 		tskReponses = append(tskReponses, dtos.NewTaskResposne(tk, nil))
 	}
 
+	log.Println("returning from service")
+
 	return tskReponses, nil
 }
 
 // when add images need to pass in the file data here
 func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskRequest) (*dtos.TaskResponse, error) {
 	tsk := newTaskFrmPtrRequest(tdata)
+	log.Println("created task from request")
 	var err error
 
 	tsk.Tid, err = uuid.NewRandom()
-
 	if err != nil {
+		log.Printf("failed to create tid %v", err)
 		return nil, err
 	}
 
+	log.Printf("created tid %v", tsk.Tid)
 	// if fileData != nil && fileData.File != nil && fileData.Header != nil {
 	// 	var fileName string
 	// 	fileName, err = t.s3Actor.Upload(ctx, tsk.LessorId.String(), tsk.Tid.String(), fileData)
@@ -137,6 +141,7 @@ func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskRequest) (*
 	// }
 
 	nwTsk, err := t.repo.Insert(ctx, tsk)
+	log.Printf("created new task %#v", nwTsk)
 
 	if err != nil {
 		return nil, err
@@ -146,6 +151,8 @@ func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskRequest) (*
 	if !ok {
 		return nil, cmerr.ErrUnexpectedData{Wanted: &model.Task{}, Got: nwTsk}
 	}
+
+	log.Println("type assertion passed")
 
 	// var psUrl *string
 	// if tk.Image != "" {
@@ -159,6 +166,7 @@ func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskRequest) (*
 
 	// here you will have to pass in the presign url instead of nil
 	response := dtos.NewTaskResposneFrmPntr(tk, nil)
+	log.Printf("returning response %#v", response)
 	return &response, nil
 }
 
@@ -307,6 +315,22 @@ func (t TaskService) UnPauseTask(ctx context.Context, tdo *dtos.TaskModRequest) 
 	return &response, nil
 }
 
+func (t TaskService) UpdatePriorities(ctx context.Context, tdata []*dtos.TaskModRequest) (*[]dtos.TaskResponse, error) {
+	tasks := make([]any, len(tdata))
+	for _, tres := range tdata {
+		tasks = append(tasks, *newTaskFrmModRequest(tres))
+	}
+
+	tsks, err := t.repo.BulkPriorityUpdate(ctx, tasks)
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := dtos.NewTaskResponseList(tsks)
+	return &response, nil
+}
+
 func (t TaskService) DeleteTask(ctx context.Context, f filters.Filterer) error {
 	fltr, ok := f.(filters.IdFilter)
 
@@ -333,6 +357,7 @@ func NewTaskFrmRequest(data dtos.TaskRequest) *model.Task {
 		LessorId:    utils.ParseUuid(data.LessorId),
 		PropertyId:  utils.ParseUuid(data.PropertyId),
 		WorkerId:    utils.ParseUuid(data.WorkerId),
+		Priority:    model.PriorityLevel(data.Priority),
 		Details:     data.Details,
 		Notes:       data.Notes,
 		ScheduledAt: data.ScheduledAt,
@@ -345,6 +370,7 @@ func newTaskFrmPtrRequest(data *dtos.TaskRequest) *model.Task {
 		LessorId:    utils.ParseUuid(data.LessorId),
 		PropertyId:  utils.ParseUuid(data.PropertyId),
 		WorkerId:    utils.ParseUuid(data.WorkerId),
+		Priority:    model.PriorityLevel(data.Priority),
 		Details:     data.Details,
 		Notes:       data.Notes,
 		ScheduledAt: data.ScheduledAt,
@@ -358,6 +384,7 @@ func newTaskFrmModRequest(data *dtos.TaskModRequest) *model.Task {
 		Tid:          utils.ParseUuid(data.Tid),
 		PropertyId:   utils.ParseUuid(data.PropertyId),
 		WorkerId:     utils.ParseUuid(data.WorkerId),
+		Priority:     model.PriorityLevel(data.Priority),
 		Details:      data.Details,
 		Notes:        data.Notes,
 		ScheduledAt:  data.ScheduledAt,

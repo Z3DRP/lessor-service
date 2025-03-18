@@ -120,6 +120,7 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 		log.Println("request timeout")
 		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
 	default:
+		// TODO change defalting to text communication preference
 		var payload dtos.UserSignupRequest
 		w.Header().Set("Content-Type", "application/json")
 

@@ -3,6 +3,7 @@ package dac
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
 	"github.com/Z3DRP/lessor-service/internal/filters"
@@ -26,7 +27,7 @@ func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{},
 	var tsk model.Task
 	limit := utils.DeterminRecordLimit(fltr.Limit)
 	err := t.GetBunDB().NewSelect().Model(&tsk).
-		Where("? = ?", bun.Ident("tid"), fltr.Identifier).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+		Where("? = ?", bun.Ident("tid"), fltr.Identifier).Relation("Worker").Relation("Property").Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -41,41 +42,60 @@ func (t *TaskRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{},
 
 func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Task, error) {
 	var tsks []model.Task
+	log.Printf("making db  call now")
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := t.GetBunDB().NewSelect().Model(&tsks).Limit(limit).Offset(10 * (fltr.Page - 1)).Scan(ctx)
+
+	log.Printf("limit is %v", limit)
+
+	err := t.GetBunDB().NewSelect().Model(&tsks).Relation("Property").Relation("Worker").Scan(ctx, &tsks)
+
+	log.Printf("db err after call %v", err)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Printf("db no rows err %v", err)
 			return nil, ErrNoResults{Shape: model.Task{}, Identifier: "[fetch-all]", Err: err}
 		}
+		log.Printf("db error %v", err)
 		return nil, ErrFetchFailed{Model: "Task", Err: err}
 	}
 
+	log.Println("no db error")
+	log.Printf("task returned %v", tsks)
 	return tsks, nil
 }
 
 func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 	tk, ok := tsk.(*model.Task)
+	log.Println("repo type asert passed")
 	if !ok {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
 
 	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
+		log.Printf("transaction start failed %v", err)
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	err = tx.NewInsert().Model(&tk).Returning("*").Scan(ctx, tk)
+	log.Println("transaction started...")
+
+	err = tx.NewInsert().Model(tk).Returning("*").Scan(ctx, tk)
 	if err != nil {
-		if err = tx.Rollback(); err != nil {
-			return nil, ErrRollbackFailed{err}
+		log.Printf("error with insert %v", err)
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return nil, ErrRollbackFailed{rbErr}
 		}
 		return nil, ErrInsertFailed{Model: "Task", Err: err}
 	}
+	log.Println("insert successful")
 
 	if err = tx.Commit(); err != nil {
+		log.Printf("error committing %v", err)
 		return nil, ErrTransactionCommitFail{err}
 	}
+
+	log.Printf("returning new task frm repo %#v", tk)
 	return tk, err
 }
 
@@ -210,6 +230,39 @@ func (t *TaskRepo) UpdatePausedAt(ctx context.Context, tsk interface{}) (interfa
 	}
 
 	return tk, nil
+}
+
+func (t *TaskRepo) BulkPriorityUpdate(ctx context.Context, tasks []interface{}) ([]model.Task, error) {
+	var err error
+	uTasks := make([]model.Task, 0)
+	for _, tsk := range tasks {
+		_, ok := tsk.(model.Task)
+		if !ok {
+			err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
+			break
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	values := t.GetBunDB().NewValues(&tasks)
+	err = tx.NewUpdate().With("_data", values).
+		Model((*model.Task)(nil)).TableExpr("_data").
+		Set("task.priority = _data.priority").Where("task.tid = _data.tid").
+		Returning("*").Scan(ctx, &uTasks)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return uTasks, nil
 }
 
 func (t *TaskRepo) Delete(ctx context.Context, tsk any) error {

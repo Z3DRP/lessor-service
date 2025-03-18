@@ -76,6 +76,36 @@ func GenFilter(r *http.Request) (Filter, error) {
 
 }
 
+func GenTaskFilter(r *http.Request) (Filter, error) {
+	query := r.URL.Query()
+	id := r.PathValue("lessorId")
+
+	if id == "" {
+		return Filter{}, errors.New("failed to generate primary key filter, primary key not found in request")
+	}
+
+	page, err := strconv.Atoi(query.Get("page"))
+
+	if err != nil {
+		return Filter{}, fmt.Errorf("page was not included with request %v", err)
+	}
+
+	lmt, err := strconv.Atoi(query.Get("limit"))
+	if err != nil {
+		lmt = utils.DeterminRecordLimit(0)
+	}
+
+	fltr := Filter{Identifier: id, Page: page, Limit: lmt}
+	err = fltr.Validate()
+
+	if err != nil {
+		return Filter{}, err
+	}
+
+	return fltr, nil
+
+}
+
 func (f Filter) Validate() error {
 	if f.Page == 0 {
 		f.Page = 1
@@ -89,8 +119,8 @@ func (f Filter) Validate() error {
 		return errors.New("invalid limit, must be positive number")
 	}
 
-	if f.Limit > 25 {
-		return errors.New("invalid limit, must be less than 25")
+	if f.Limit > 50 {
+		return errors.New("invalid limit, must be less than 50")
 	}
 
 	return nil

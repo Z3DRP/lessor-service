@@ -64,6 +64,10 @@ func registerRoutes(
 	mux.HandleFunc("POST /alessor/{id}", aHandler.HandleCreateAlessor)
 	mux.HandleFunc("PUT /alessor/{id}", aHandler.HandleUpdateAlessor)
 	mux.HandleFunc("DELETE /alessor/{id}", aHandler.HandleDeleteAlessor)
+	mux.HandleFunc("GET /alessor/{id}/task", tHandler.HandleGetTasks)
+	mux.HandleFunc("GET /alessor/{id}/worker", wHandler.HandleGetWorkers)
+	// need to add this and remove from below and change to property
+	//mux.HandleFunc("GET alessor/{id}/property", pHandler.HandleGetProperties)
 
 	mux.HandleFunc("GET /user", uHandler.HandleGetUsers) // admin or alessors route only
 	mux.HandleFunc("GET /user/{id}", uHandler.HandleGetUser)
@@ -82,7 +86,6 @@ func registerRoutes(
 	mux.HandleFunc("PUT /property/{id}", pHandler.HandleUpdateProperty)
 	mux.HandleFunc("DELETE /property/{id}", pHandler.HandleDeleteProperty)
 
-	mux.HandleFunc("GET /task/", tHandler.HandleGetTasks)
 	mux.HandleFunc("GET /task/{id}", tHandler.HandleGetTask)
 	mux.HandleFunc("POST /task", tHandler.HandleCreateTask)
 	mux.HandleFunc("PUT /task/{id}", tHandler.HandleUpdateTask)
@@ -99,7 +102,6 @@ func registerRoutes(
 	mux.HandleFunc("PUT /rental/{id}", rpHandler.HandleUpdateRentalProperty)
 	mux.HandleFunc("DELETE /rental/{id}", rpHandler.HandleDeleteRentalProperty)
 
-	mux.HandleFunc("GET /worker", wHandler.HandleGetWorkers)
 	mux.HandleFunc("GET /worker/{id}", wHandler.HandleGetWorker)
 	mux.HandleFunc("POST /worker", wHandler.HandleCreateWorker)
 	mux.HandleFunc("PUT /worker/{id}", wHandler.HandleUpdateWorker)

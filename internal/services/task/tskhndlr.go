@@ -40,9 +40,14 @@ func (t TaskHandler) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 		if err := utils.ParseJSON(r, payload); err != nil {
 			t.logger.LogFields(logrus.Fields{"msg": "failed to parse request body", "err": err})
 			utils.WriteErr(w, http.StatusInternalServerError, err)
-			log.Printf("failed to parse reqiest %v", err)
+			log.Printf("failed to parse request %v", err)
+			log.Printf("request body failed: %v", r.Body)
 			return
 		}
+
+		log.Println()
+		log.Printf("payload is %v\n", payload)
+		log.Printf("payload %#v\n", payload)
 
 		task, err := t.CreateTask(r.Context(), payload)
 
@@ -52,6 +57,8 @@ func (t TaskHandler) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}
+
+		log.Printf("creat task success %#v", task)
 
 		res := ztype.JsonResponse{
 			"task":    task,
@@ -121,6 +128,8 @@ func (t TaskHandler) HandleGetTasks(w http.ResponseWriter, r *http.Request) {
 		t.logger.LogFields(logrus.Fields{"msg": "request timeout", "err": timeOutErr})
 		utils.WriteErr(w, http.StatusRequestTimeout, timeOutErr)
 	default:
+		log.Println()
+		log.Println("fetching tasks")
 		fltr, err := filters.GenFilter(r)
 
 		if err != nil {
@@ -130,6 +139,7 @@ func (t TaskHandler) HandleGetTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Println("about to call service db method")
 		tasks, err := t.repo.FetchAll(r.Context(), fltr)
 
 		if err != nil {
@@ -174,14 +184,14 @@ func (t TaskHandler) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	default:
 		payload := &dtos.TaskModRequest{}
 
-		if err := payload.Validate(); err != nil {
-			log.Printf("failed to validate request")
+		if err := utils.ParseJSON(r, payload); err != nil {
+			log.Printf("failed to parse request body %v", err)
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := utils.ParseJSON(r, payload); err != nil {
-			log.Printf("failed to parse request body %v", err)
+		if err := payload.Validate(); err != nil {
+			log.Printf("failed to validate request")
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
@@ -219,12 +229,6 @@ func (t TaskHandler) HandleUpdatePriority(w http.ResponseWriter, r *http.Request
 	default:
 		payload := &dtos.TaskModRequest{}
 
-		if err := payload.Validate(); err != nil {
-			log.Printf("failed to validate request")
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
-
 		tid := r.PathValue("id")
 		if tid == "" {
 			log.Println("invalid request missing tid path value")
@@ -234,6 +238,12 @@ func (t TaskHandler) HandleUpdatePriority(w http.ResponseWriter, r *http.Request
 
 		if err := utils.ParseJSON(r, payload); err != nil {
 			log.Printf("failed to parse request body %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := payload.Validate(); err != nil {
+			log.Printf("failed to validate request")
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
@@ -273,12 +283,6 @@ func (t TaskHandler) HandleAssignTask(w http.ResponseWriter, r *http.Request) {
 	default:
 		payload := &dtos.TaskModRequest{}
 
-		if err := payload.Validate(); err != nil {
-			log.Printf("failed to validate request")
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
-
 		tid := r.PathValue("id")
 		if tid == "" {
 			log.Println("invalid request missing tid path value")
@@ -288,6 +292,12 @@ func (t TaskHandler) HandleAssignTask(w http.ResponseWriter, r *http.Request) {
 
 		if err := utils.ParseJSON(r, payload); err != nil {
 			log.Printf("failed to parse request body %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := payload.Validate(); err != nil {
+			log.Printf("failed to validate request")
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
@@ -327,12 +337,6 @@ func (t TaskHandler) HandleCompleteTask(w http.ResponseWriter, r *http.Request) 
 	default:
 		payload := &dtos.TaskModRequest{}
 
-		if err := payload.Validate(); err != nil {
-			log.Printf("failed to validate request")
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
-
 		tid := r.PathValue("id")
 		if tid == "" {
 			log.Println("invalid request missing tid path value")
@@ -342,6 +346,12 @@ func (t TaskHandler) HandleCompleteTask(w http.ResponseWriter, r *http.Request) 
 
 		if err := utils.ParseJSON(r, payload); err != nil {
 			log.Printf("failed to parse request body %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := payload.Validate(); err != nil {
+			log.Printf("failed to validate request")
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
@@ -381,12 +391,6 @@ func (t TaskHandler) HandlePauseTask(w http.ResponseWriter, r *http.Request) {
 	default:
 		payload := &dtos.TaskModRequest{}
 
-		if err := payload.Validate(); err != nil {
-			log.Printf("failed to validate request")
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
-
 		tid := r.PathValue("id")
 		if tid == "" {
 			log.Println("invalid request missing tid path value")
@@ -396,6 +400,12 @@ func (t TaskHandler) HandlePauseTask(w http.ResponseWriter, r *http.Request) {
 
 		if err := utils.ParseJSON(r, payload); err != nil {
 			log.Printf("failed to parse request body %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := payload.Validate(); err != nil {
+			log.Printf("failed to validate request")
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
@@ -435,12 +445,6 @@ func (t TaskHandler) HandleUnPauseTask(w http.ResponseWriter, r *http.Request) {
 	default:
 		payload := &dtos.TaskModRequest{}
 
-		if err := payload.Validate(); err != nil {
-			log.Printf("failed to validate request")
-			utils.WriteErr(w, http.StatusBadRequest, err)
-			return
-		}
-
 		tid := r.PathValue("id")
 		if tid == "" {
 			log.Println("invalid request missing tid path value")
@@ -450,6 +454,12 @@ func (t TaskHandler) HandleUnPauseTask(w http.ResponseWriter, r *http.Request) {
 
 		if err := utils.ParseJSON(r, payload); err != nil {
 			log.Printf("failed to parse request body %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := payload.Validate(); err != nil {
+			log.Printf("failed to validate request")
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
@@ -474,6 +484,57 @@ func (t TaskHandler) HandleUnPauseTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+}
+
+func (t TaskHandler) HandleBulkPriorityUpdate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	select {
+	case <-r.Context().Done():
+		err := utils.ErrRequestTimeout{Request: r}
+		t.logger.LogFields(logrus.Fields{
+			"msg": "request timeout",
+			"err": err,
+		})
+		utils.WriteErr(w, http.StatusRequestTimeout, err)
+	default:
+		payload := []*dtos.TaskModRequest{}
+		if err := utils.ParseJSON(r, &payload); err != nil {
+			log.Printf("failed to parse request body %v", err)
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			return
+		}
+
+		var bErr error
+		for _, load := range payload {
+			if err := load.Validate(); err != nil {
+				log.Printf("failed to validate request %v", err)
+				bErr = err
+				break
+			}
+		}
+
+		if bErr != nil {
+			utils.WriteErr(w, http.StatusBadRequest, bErr)
+		}
+
+		tasks, err := t.UpdatePriorities(r.Context(), payload)
+
+		if err != nil {
+			log.Printf("db error %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		res := ztype.JsonResponse{
+			"tasks":   tasks,
+			"success": true,
+		}
+
+		if err := utils.WriteJSON(w, http.StatusOK, res); err != nil {
+			log.Printf("failed to write resposne %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+		}
+	}
 }
 
 func (t TaskHandler) HandleDeleteTask(w http.ResponseWriter, r *http.Request) {

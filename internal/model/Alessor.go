@@ -25,7 +25,7 @@ type Alessor struct {
 	SquareAccount             string                  `bun:"type:varchar(255),nullzero"`
 	PaymentIntegrationEnabled bool                    `bun:"type:boolean,notnull,nullzero,default:false"`
 	PaymentSchedule           map[string]interface{}  `bun:"type:jsonb,json_use_number"`
-	ComunicationPreference    CommunicationPreference `bun:"type:communication_preference"`
+	CommunicationPreference   CommunicationPreference `bun:"type:communication_preference"`
 	NumberOfEmployees         int                     `bun:"type:int"`
 }
 

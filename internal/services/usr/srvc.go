@@ -109,10 +109,11 @@ func (a *UserService) CreateAlessor(ctx context.Context, usr *model.User) (model
 	alessor := model.Alessor{
 		Uid:                       usr.Uid,
 		PaymentIntegrationEnabled: false,
+		CommunicationPreference:   "text",
 		TotalProperties:           0,
 	}
 
-	alsr, err := a.repo.Insert(ctx, alessor)
+	alsr, err := a.repo.InsertAlessor(ctx, alessor)
 	if err != nil {
 		log.Printf("faild to create alessor from user %v", err)
 		return model.Alessor{}, err

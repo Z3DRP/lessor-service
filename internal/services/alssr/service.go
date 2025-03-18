@@ -142,6 +142,6 @@ func newAlessor(adto dtos.AlessorRequest) *model.Alessor {
 		SquareAccount:             adto.SquareAccount,
 		PaymentIntegrationEnabled: adto.PaymentIntegrationEnabled,
 		PaymentSchedule:           adto.PaymentSchedule,
-		ComunicationPreference:    model.CommunicationPreference(adto.CommunicationPrefrences),
+		CommunicationPreference:   model.CommunicationPreference(adto.CommunicationPrefrences),
 	}
 }

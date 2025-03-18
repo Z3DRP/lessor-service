@@ -108,6 +108,37 @@ func (u *UserRepo) Insert(ctx context.Context, usr any) (interface{}, error) {
 	return user, nil
 }
 
+func (u *UserRepo) InsertAlessor(ctx context.Context, alsr any) (interface{}, error) {
+	lessor, ok := alsr.(model.Alessor)
+	if !ok {
+		log.Printf("type assertion failed wanted %T got %T", lessor, alsr)
+		return nil, cmerr.ErrUnexpectedData{Wanted: lessor, Got: alsr}
+	}
+
+	tx, err := u.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	err = tx.NewInsert().Model(&lessor).Returning("*").Scan(ctx, &lessor)
+
+	if err != nil {
+		log.Printf("db err %v", err)
+		if err = tx.Rollback(); err != nil {
+			log.Printf("db rollback err %v", err)
+			return model.Alessor{}, nil
+		}
+		return nil, ErrInsertFailed{Model: "Alessor", Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return model.Alessor{}, err
+	}
+
+	return lessor, nil
+}
+
 func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {
 	pf, ok := usr.(model.User)
 	if !ok {

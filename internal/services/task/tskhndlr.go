@@ -46,7 +46,6 @@ func (t TaskHandler) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Println()
-		log.Printf("payload is %v\n", payload)
 		log.Printf("payload %#v\n", payload)
 
 		task, err := t.CreateTask(r.Context(), payload)
@@ -60,8 +59,19 @@ func (t TaskHandler) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("creat task success %#v", task)
 
+		log.Println("fetching new task data")
+
+		nwTask, err := t.repo.Fetch(r.Context(), filters.Filter{Identifier: task.Tid, Page: 1, Limit: 1})
+
+		if err != nil {
+			t.logger.LogFields(logrus.Fields{"msg": "failed to fetch newest task", "err": err})
+			log.Printf("failed to fetch new task %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
+		}
+
 		res := ztype.JsonResponse{
-			"task":    task,
+			"task":    nwTask,
 			"success": true,
 		}
 

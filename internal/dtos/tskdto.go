@@ -9,7 +9,7 @@ import (
 type TaskResponse struct {
 	Tid           string          `json:"tid"`
 	Name          string          `json:"name"`
-	LessorId      string          `json:"alessorId"`
+	LessorId      string          `json:"lessorId"`
 	Details       string          `json:"details"`
 	Notes         string          `json:"notes"`
 	PropertyId    string          `json:"propertyId"`

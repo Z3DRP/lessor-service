@@ -127,6 +127,31 @@ func (a *UserService) CreateAlessor(ctx context.Context, usr *model.User) (model
 	return lessor, nil
 }
 
+func (a *UserService) CreateWorker(ctx context.Context, usr *model.User, nwWorker dtos.WorkerUserSignupRequest) (model.Worker, error) {
+	wrkr := model.Worker{
+		Uid:           usr.Uid,
+		StartDate:     nwWorker.StartDate,
+		Title:         nwWorker.Title,
+		LessorId:      utils.ParseUuid(nwWorker.LessorId),
+		PayRate:       nwWorker.PayRate,
+		PaymentMethod: model.MethodOfPayment(nwWorker.PaymentMethod),
+	}
+
+	worker, err := a.repo.InsertWorker(ctx, wrkr)
+
+	if err != nil {
+		log.Printf("failed worker creation in service: %v", err)
+		return model.Worker{}, err
+	}
+
+	wkr, ok := worker.(model.Worker)
+	if !ok {
+		return model.Worker{}, cmerr.ErrUnexpectedData{Wanted: model.Worker{}, Got: worker}
+	}
+
+	return wkr, nil
+}
+
 func (p UserService) GetUsrs(ctx context.Context, fltr filters.Filter) ([]model.User, error) {
 	prfls, err := p.repo.FetchAll(ctx, fltr)
 

@@ -100,7 +100,7 @@ func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 }
 
 func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
-	tk, ok := tsk.(model.Task)
+	tk, ok := tsk.(*model.Task)
 	if !ok {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
@@ -110,7 +110,7 @@ func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	err = tx.NewUpdate().Model(&tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Returning("*").Scan(ctx, &tk)
+	err = tx.NewUpdate().Model(tk).OmitZero().Where("? = ?", bun.Ident("tid"), tk.Tid).Returning("*").Scan(ctx, tk)
 	if err != nil {
 		if err = tx.Rollback(); err != nil {
 			return nil, ErrRollbackFailed{err}

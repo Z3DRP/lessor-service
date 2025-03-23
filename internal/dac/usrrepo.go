@@ -43,7 +43,7 @@ func (u *UserRepo) GetCredentials(ctx context.Context, email string) (interface{
 	var usr model.User
 	log.Printf("email used: %v", email)
 	err := u.GetBunDB().NewSelect().Model(&usr).
-		Column("uid", "username", "email", "profile_type", "password").
+		Column("uid", "first_name", "last_name", "username", "email", "phone", "profile_type", "password", "is_active").
 		Where("? = ?", bun.Ident("email"), email).Scan(ctx, &usr)
 
 	log.Printf("user found: %v", usr)
@@ -127,7 +127,7 @@ func (u *UserRepo) InsertAlessor(ctx context.Context, alsr any) (interface{}, er
 		log.Printf("db err %v", err)
 		if err = tx.Rollback(); err != nil {
 			log.Printf("db rollback err %v", err)
-			return model.Alessor{}, nil
+			return model.Alessor{}, ErrRollbackFailed{Err: err}
 		}
 		return nil, ErrInsertFailed{Model: "Alessor", Err: err}
 	}
@@ -137,6 +137,35 @@ func (u *UserRepo) InsertAlessor(ctx context.Context, alsr any) (interface{}, er
 	}
 
 	return lessor, nil
+}
+
+func (u *UserRepo) InsertWorker(ctx context.Context, worker any) (interface{}, error) {
+	wrkr, ok := worker.(model.Worker)
+	if !ok {
+		log.Println("failed worker type assertion in repo")
+		return nil, cmerr.ErrUnexpectedData{Wanted: model.Worker{}, Got: wrkr}
+	}
+
+	tx, err := u.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, ErrTransactionStartFailed{Err: err}
+	}
+
+	err = tx.NewInsert().Model(&wrkr).Returning("*").Scan(ctx, &wrkr)
+	if err != nil {
+		log.Printf("repo error on insrt %v", err)
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("failed to rollback after error %v", rbErr)
+			return nil, ErrRollbackFailed{Err: err}
+		}
+		return nil, ErrInsertFailed{Model: "Worker", Err: err}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return wrkr, nil
 }
 
 func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {

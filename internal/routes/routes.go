@@ -58,6 +58,7 @@ func registerRoutes(
 ) {
 	mux.HandleFunc("POST /sign-in", uHandler.HandleLogin)
 	mux.HandleFunc("POST /sign-up", uHandler.HandleSignUp)
+	mux.HandleFunc("POST /sign-up/worker", uHandler.HandleSignUpWorker)
 
 	mux.HandleFunc("GET /alessor", aHandler.HandleGetAlessors)
 	mux.HandleFunc("GET /alessor/{id}", aHandler.HandleGetAlessor)

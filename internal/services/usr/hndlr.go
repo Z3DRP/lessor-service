@@ -183,6 +183,87 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (u UserHandler) HandleSignUpWorker(w http.ResponseWriter, r *http.Request) {
+	select {
+	case <-r.Context().Done():
+		timeoutErr := utils.ErrRequestTimeout{Request: r}
+		u.logger.MustDebug(timeoutErr.Error())
+		log.Println("request timeout")
+		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
+	default:
+		// TODO change defalting to text communication preference
+		var payload dtos.WorkerUserSignupRequest
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := utils.ParseJSON(r, &payload); err != nil {
+			u.logger.MustDebug("failed to parse request body")
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			log.Println(err)
+			return
+		}
+
+		if err := payload.Validate(); err != nil {
+			u.logger.MustDebug(fmt.Sprintf("user create payload failed validation, %v", err))
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			log.Println(err)
+			return
+		}
+
+		signupRequest := dtos.UserSignupRequest{
+			FirstName:   payload.FirstName,
+			LastName:    payload.LastName,
+			ProfileType: payload.ProfileType,
+			Username:    payload.Username,
+			Password:    payload.Password,
+			Phone:       payload.Phone,
+			Email:       payload.Email,
+		}
+
+		user, err := u.CreateUsr(r.Context(), signupRequest)
+
+		if err != nil {
+			u.logger.MustDebug(fmt.Sprintf("database err %v", err))
+			utils.WriteErr(w, http.StatusBadRequest, err)
+			log.Println(err)
+			return
+		}
+
+		// create a initial alessor profile for the user
+		_, err = u.CreateWorker(r.Context(), user, payload)
+
+		if err != nil {
+			log.Printf("failed to create worker profile %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		token, err := auth.GenerateToken(user.Uid.String(), user.Email, user.ProfileType)
+		log.Printf("Generating token for UID: %s, Email: %s, Role: %s", user.Uid.String(), user.Email, user.ProfileType)
+
+		if err != nil {
+			u.logger.MustDebug(fmt.Sprintf("auth error: %v", err))
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			log.Println("auth err")
+			return
+		}
+
+		usrDto := dtos.NewSigninResponse(user)
+
+		res := ztype.JsonResponse{
+			"accessToken": token,
+			"user":        usrDto,
+		}
+
+		log.Printf("returning login res: %+v", res)
+
+		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
+			u.logger.MustDebug(fmt.Sprintf("json encoding err %v", err))
+			log.Printf("error encoding json: %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+		}
+	}
+}
+
 func (u UserHandler) HandleGetDetails(w http.ResponseWriter, r *http.Request) {
 	select {
 	case <-r.Context().Done():

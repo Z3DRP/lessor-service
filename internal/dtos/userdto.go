@@ -6,6 +6,7 @@ import (
 
 	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -43,15 +44,34 @@ func (u *UserSignupRequest) Validate() error {
 	})
 }
 
+type WorkerUserSignupRequest struct {
+	FirstName     string          `json:"firstName"`
+	LastName      string          `json:"lastName"`
+	ProfileType   string          `json:"profileType"`
+	Username      string          `json:"username"`
+	Phone         string          `json:"phone"`
+	Email         string          `json:"email"`
+	Password      string          `json:"password"`
+	StartDate     time.Time       `json:"startDate"`
+	Title         string          `json:"title"`
+	LessorId      string          `json:"lessorId"`
+	PayRate       decimal.Decimal `json:"payRate"`
+	PaymentMethod string          `json:"paymentMethod"`
+}
+
+func (u *WorkerUserSignupRequest) Validate() error {
+	return nil
+}
+
 type UserSigninRequest struct {
-	Uid         string
-	FirstName   string
-	LastName    string
-	IsActive    bool
-	Phone       string
-	Email       string
-	ProfileType string
-	Username    string
+	Uid         string `json:"uid"`
+	FirstName   string `json:"firstName"`
+	LastName    string `json:"lastName"`
+	IsActive    bool   `json:"isActive"`
+	Phone       string `json:"phone"`
+	Email       string `json:"email"`
+	ProfileType string `json:"profileType"`
+	Username    string `json:"username"`
 }
 
 func (u *UserSigninRequest) Validate() error {

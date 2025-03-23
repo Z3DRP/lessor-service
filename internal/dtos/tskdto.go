@@ -34,7 +34,7 @@ func (t TaskResponse) Validate() error {
 	return nil
 }
 
-func NewTaskResposne(t model.Task, url *string) TaskResponse {
+func NewTaskResposne(t *model.Task, url *string) TaskResponse {
 	return TaskResponse{
 		Tid:           t.Tid.String(),
 		Name:          t.Name,
@@ -63,7 +63,7 @@ func NewTaskResposne(t model.Task, url *string) TaskResponse {
 func NewTaskResponseList(t []model.Task) []TaskResponse {
 	response := make([]TaskResponse, len(t))
 	for _, tsk := range t {
-		response = append(response, NewTaskResposne(tsk, nil))
+		response = append(response, NewTaskResposne(&tsk, nil))
 	}
 
 	return response

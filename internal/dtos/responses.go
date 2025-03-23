@@ -9,7 +9,9 @@ type SigninResponse struct {
 	Uid         uuid.UUID `json:"uid"`
 	Username    string    `json:"username"`
 	Email       string    `json:"email"`
-	ProfileType string    `json:"profile_type"`
+	ProfileType string    `json:"profileType"`
+	FirstName   string    `json:"firstName"`
+	LastName    string    `json:"lastName"`
 }
 
 func NewSigninResponse(usr *model.User) SigninResponse {
@@ -18,5 +20,7 @@ func NewSigninResponse(usr *model.User) SigninResponse {
 		usr.Username,
 		usr.Email,
 		usr.ProfileType,
+		usr.FirstName,
+		usr.LastName,
 	}
 }

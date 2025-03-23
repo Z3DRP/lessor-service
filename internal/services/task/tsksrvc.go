@@ -67,7 +67,7 @@ func (t TaskService) GetTask(ctx context.Context, fltr filters.Filterer) (*dtos.
 
 	// 	tskDto = dtos.NewTaskResponse(task, &fileUrl)
 	// }
-	tskDto := dtos.NewTaskResposne(task, nil)
+	tskDto := dtos.NewTaskResposne(&task, nil)
 
 	return &tskDto, nil
 }
@@ -108,7 +108,7 @@ func (t TaskService) GetTasks(ctx context.Context, fltr filters.Filterer) ([]dto
 		// } else {
 		// 	tskReponses = append(tskReponses, dtos.NewTaskResposne(tk, nil))
 		// }
-		tskReponses = append(tskReponses, dtos.NewTaskResposne(tk, nil))
+		tskReponses = append(tskReponses, dtos.NewTaskResposne(&tk, nil))
 	}
 
 	log.Println("returning from service")
@@ -186,7 +186,7 @@ func (t TaskService) ModifyTask(ctx context.Context, tdto *dtos.TaskModRequest) 
 		return nil, err
 	}
 
-	task, ok := updatedTask.(model.Task)
+	task, ok := updatedTask.(*model.Task)
 
 	if !ok {
 		err = cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: updatedTask}
@@ -216,7 +216,7 @@ func (t TaskService) ModifyTaskPririty(ctx context.Context, tdo *dtos.TaskModReq
 		return nil, err
 	}
 
-	response := dtos.NewTaskResposne(task, nil)
+	response := dtos.NewTaskResposne(&task, nil)
 	return &response, nil
 }
 
@@ -243,7 +243,7 @@ func (t TaskService) AssignTask(ctx context.Context, tdo *dtos.TaskModRequest) (
 		return nil, err
 	}
 
-	response := dtos.NewTaskResposne(task, nil)
+	response := dtos.NewTaskResposne(&task, nil)
 	return &response, nil
 }
 
@@ -265,7 +265,7 @@ func (t TaskService) CompleteTask(ctx context.Context, tdo *dtos.TaskModRequest)
 		return nil, err
 	}
 
-	response := dtos.NewTaskResposne(task, nil)
+	response := dtos.NewTaskResposne(&task, nil)
 	return &response, nil
 }
 
@@ -287,7 +287,7 @@ func (t TaskService) PauseTask(ctx context.Context, tdo *dtos.TaskModRequest) (*
 		return nil, err
 	}
 
-	response := dtos.NewTaskResposne(task, nil)
+	response := dtos.NewTaskResposne(&task, nil)
 	return &response, nil
 }
 
@@ -311,7 +311,7 @@ func (t TaskService) UnPauseTask(ctx context.Context, tdo *dtos.TaskModRequest) 
 		return nil, err
 	}
 
-	response := dtos.NewTaskResposne(task, nil)
+	response := dtos.NewTaskResposne(&task, nil)
 	return &response, nil
 }
 

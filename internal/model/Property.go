@@ -18,11 +18,13 @@ const (
 )
 
 type Address struct {
-	Street  string `json:"street"`
-	City    string `json:"city"`
-	State   string `json:"state"`
-	Country string `json:"country"`
-	Zipcode string `json:"zipcode"`
+	Street  string  `json:"street"`
+	City    string  `json:"city"`
+	State   string  `json:"state"`
+	Country string  `json:"country"`
+	Zipcode string  `json:"zipcode"`
+	Lat     float64 `json:"lat"`
+	Lng     float64 `json:"lng"`
 }
 
 type Property struct {

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Z3DRP/lessor-service/internal/dtos"
+	"github.com/Z3DRP/lessor-service/internal/model"
+	"github.com/Z3DRP/lessor-service/pkg/geo"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 )
 
@@ -118,4 +120,14 @@ func ParsePropertyForm(r *http.Request) (*dtos.PropertyRequest, error) {
 		MaxOccupancy: maxOpp,
 		Image:        r.FormValue("image"),
 	}, nil
+}
+
+func AddressAdapter(adr model.Address) *geo.GAddress {
+	return &geo.GAddress{
+		Street:  adr.Street,
+		City:    adr.City,
+		State:   adr.State,
+		Country: adr.Country,
+		Zipcode: adr.Zipcode,
+	}
 }

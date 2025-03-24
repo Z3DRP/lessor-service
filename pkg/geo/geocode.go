@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -51,7 +50,7 @@ func (a *GeoActor) encodeAddress(addr GAddress) string {
 }
 
 func (a *GeoActor) GeoCode(address GAddress) (*Location, error) {
-	geoUrl, err := a.buildUrl()
+	geoUrl, err := a.buildUrl(address)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to build geocode url %v", err)

@@ -19,17 +19,16 @@ type GAddress struct {
 	Lng     float64 `json:"lng"`
 }
 
+func (g GAddress) String() string {
+	return fmt.Sprintf("%#v", g)
+}
+
 type Location struct {
 	Latitude  float64
 	Longitude float64
 }
 
-type AddressEncoder interface {
-	EncodeAddress(addr GAddress) string
-}
-
 type GeoCoder interface {
-	AddressEncoder
 	GeoCode(addr GAddress) Location
 }
 
@@ -41,12 +40,6 @@ type GeoActor struct {
 
 func NewGeoActor() GeoActor {
 	return GeoActor{}
-}
-
-func (a *GeoActor) encodeAddress(addr GAddress) string {
-	params := url.Values{}
-	params.Add("address", fmt.Sprintf("%v, %v, %v", addr.Street, addr.City, addr.State))
-	return params.Encode()
 }
 
 func (a *GeoActor) GeoCode(address GAddress) (*Location, error) {
@@ -97,20 +90,20 @@ func (a *GeoActor) GeoCode(address GAddress) (*Location, error) {
 func (a *GeoActor) buildUrl(addr GAddress) (string, error) {
 	key := os.Getenv("GEOCODING_KEY")
 	ep := os.Getenv("GEOCODE_EP")
-	addrs := a.encodeAddress(addr)
 
 	if key == "" || ep == "" {
 		return "", errors.New("env variables are empty, need key and endpoint")
 	}
 
-	gUrl, err := url.JoinPath(ep, addrs)
-
+	base, err := url.Parse(ep)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to parse endpoint: %w", err)
 	}
 
-	param := url.Values{}
-	param.Add("key", key)
+	params := url.Values{}
+	params.Add("address", fmt.Sprintf("%v,%v,%v", addr.Street, addr.City, addr.State))
+	params.Add("key", key)
+	base.RawQuery = params.Encode()
 
-	return url.JoinPath(gUrl, param.Encode())
+	return base.String(), nil
 }

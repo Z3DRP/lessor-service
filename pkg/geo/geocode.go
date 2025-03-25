@@ -23,6 +23,15 @@ func (g GAddress) String() string {
 	return fmt.Sprintf("%#v", g)
 }
 
+func NewGAddress(addr json.RawMessage) (GAddress, error) {
+	var add GAddress
+	if err := json.Unmarshal(addr, &add); err != nil {
+		return GAddress{}, err
+	}
+
+	return add, nil
+}
+
 type Location struct {
 	Latitude  float64
 	Longitude float64

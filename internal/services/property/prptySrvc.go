@@ -3,6 +3,7 @@ package property
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/internal/services"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
+	"github.com/Z3DRP/lessor-service/pkg/geo"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/google/uuid"
 )
@@ -120,6 +122,11 @@ func (p PropertyService) GetProperties(ctx context.Context, fltr filters.Filtere
 }
 
 func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.PropertyRequest, fileData *ztype.FileUploadDto) (*dtos.PropertyResponse, error) {
+	// mutates the address adding the lat and lng of addrss
+	if err := p.GeocodeAddress(pdata); err != nil {
+		return nil, fmt.Errorf("could not determine property coordinates %v", err)
+	}
+
 	property := newPropertyRequest(pdata)
 	var err error
 
@@ -167,6 +174,19 @@ func (p PropertyService) CreateProperty(ctx context.Context, pdata *dtos.Propert
 }
 
 func (p PropertyService) ModifyProperty(ctx context.Context, pdto *dtos.PropertyModificationRequest, fileData *ztype.FileUploadDto) (*dtos.PropertyResponse, error) {
+	isAddrsUpdated, err := p.isAddressDif(ctx, pdto.Pid, pdto.Address)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not compare previous address with new address %v", err)
+	}
+
+	if isAddrsUpdated {
+		// mutates the address adding the lat and lng of addrss
+		if err = p.GeocodeAddress(pdto); err != nil {
+			return nil, fmt.Errorf("could not determine new property coordinates %v", err)
+		}
+	}
+
 	prpty := newPropertyModRequest(pdto)
 
 	if prpty.Pid == uuid.Nil {
@@ -182,7 +202,9 @@ func (p PropertyService) ModifyProperty(ctx context.Context, pdto *dtos.Property
 	}
 
 	if fileData != nil && fileData.File != nil && fileData.Header != nil {
-		fileName, err := p.s3Actor.Upload(ctx, prpty.LessorId.String(), prpty.Pid.String(), fileData)
+		// do because the compiler is complaining about err below shadowing err above even though i thought that the variable at second pos in := is not initilization but assignment
+		var fileName string
+		fileName, err = p.s3Actor.Upload(ctx, prpty.LessorId.String(), prpty.Pid.String(), fileData)
 
 		if err != nil {
 			log.Printf("error uploading file %v", err)
@@ -252,6 +274,87 @@ func (p PropertyService) getExistingPropertyImage(ctx context.Context, id string
 	}
 
 	return property.Image, nil
+}
+
+func (p PropertyService) getExistingAddress(ctx context.Context, id string) (model.Address, error) {
+	property, err := p.repo.GetExisting(ctx, id)
+	if err != nil {
+		return model.Address{}, err
+	}
+
+	addrs, err := p.decodeAddrs(property.Address)
+	if err != nil {
+		return model.Address{}, err
+	}
+
+	return addrs, nil
+}
+
+func (p PropertyService) isAddressDif(ctx context.Context, pid string, addr json.RawMessage) (bool, error) {
+	existingAddrs, err := p.getExistingAddress(ctx, pid)
+	if err != nil {
+		return false, err
+	}
+
+	addrss, err := p.decodeAddrs(addr)
+	if err != nil {
+		return false, err
+	}
+
+	return addrss.Street != existingAddrs.Street ||
+		addrss.City != existingAddrs.City ||
+		addrss.State != existingAddrs.State ||
+		addrss.Country != existingAddrs.Country, nil
+}
+
+func (p PropertyService) decodeAddrs(addr json.RawMessage) (model.Address, error) {
+	var addrs model.Address
+	if err := json.Unmarshal(addr, &addrs); err != nil {
+		return model.Address{}, err
+	}
+
+	return addrs, nil
+}
+
+func (p PropertyService) GeocodeAddress(payload interface{}) error {
+	var payloadAddrs *json.RawMessage
+	switch v := payload.(type) {
+	case *dtos.PropertyRequest:
+		payloadAddrs = &v.Address
+	case *dtos.PropertyModificationRequest:
+		payloadAddrs = &v.Address
+	default:
+		return errors.New("unsupported dto type")
+	}
+
+	gAddrs, err := geo.NewGAddress(*payloadAddrs)
+
+	if err != nil {
+		return err
+	}
+
+	gActor := geo.NewGeoActor()
+	locCoordinates, err := gActor.GeoCode(gAddrs)
+
+	if err != nil {
+		// %s will print out the actual json of the bytes
+		return fmt.Errorf("failed to get geo coordinates for %s err %v", gAddrs, err)
+	}
+
+	var updatedAddrs model.Address
+	if err = json.Unmarshal(*payloadAddrs, &updatedAddrs); err != nil {
+		return fmt.Errorf("failed to decode address frm payload %v", err)
+	}
+
+	updatedAddrs.Lat = locCoordinates.Latitude
+	updatedAddrs.Lng = locCoordinates.Longitude
+	encodedAddrs, err := json.Marshal(updatedAddrs)
+	if err != nil {
+		return fmt.Errorf("failed to encode udpated address %v", err)
+	}
+
+	*payloadAddrs = encodedAddrs
+	return nil
 }
 
 func newPropertyRequest(data *dtos.PropertyRequest) *model.Property {

@@ -95,7 +95,6 @@ func (p PropertyHandler) HandleCreateProperty(w http.ResponseWriter, r *http.Req
 		}
 
 		property, err := p.CreateProperty(r.Context(), payload, fileUpload)
-
 		if err != nil {
 			p.logger.LogFields(logrus.Fields{
 				"msg": "failed to create property",

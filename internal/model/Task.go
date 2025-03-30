@@ -9,12 +9,20 @@ import (
 )
 
 type PriorityLevel string
+type TaskCategory string
 
 const (
-	Low       PriorityLevel = "low"
-	Medium    PriorityLevel = "medium"
-	High      PriorityLevel = "high"
-	Immediate PriorityLevel = "immediate"
+	Low                PriorityLevel = "low"
+	Medium             PriorityLevel = "medium"
+	High               PriorityLevel = "high"
+	Immediate          PriorityLevel = "immediate"
+	Maintenance        TaskCategory  = "maintenance"
+	Service            TaskCategory  = "service"
+	Installation       TaskCategory  = "installation"
+	Project            TaskCategory  = "project"
+	ClientService      TaskCategory  = "client_service"
+	ClientInstallation TaskCategory  = "client_installation"
+	ClientProject      TaskCategory  = "project"
 )
 
 type Task struct {
@@ -29,8 +37,9 @@ type Task struct {
 	Notes          string        `bun:"type:text" json:"notes"`
 	Priority       PriorityLevel `bun:"type:priority_level,notnull" json:"priority"`
 	TakePrecedence bool          `bun:"type:bool" json:"takePrecedence"`
-	PropertyId     uuid.UUID     `bun:"type:uuid,notnull" json:"propertyId"`
+	PropertyId     uuid.UUID     `bun:"type:uuid,nullzero" json:"propertyId"`
 	Property       *Property     `bun:"rel:belongs-to,join:property_id=pid" json:"property"`
+	Category       TaskCategory  `bun:"type:task_categories" json:"category"`
 	ScheduledAt    time.Time     `bun:"type:timestamptz,nullzero" json:"scheduledAt"`
 	StartedAt      time.Time     `bun:"type:timestamptz,nullzero" json:"startedAt"`
 	CompletedAt    time.Time     `bun:"type:timestamptz,nullzero" json:"completedAt"`
@@ -42,6 +51,7 @@ type Task struct {
 	Worker         *Worker       `bun:"rel:belongs-to,join:worker_id=uid" json:"worker"`
 	EstimatedCost  float64       `bun:"type:numeric(10,2)" json:"estimatedCost"`
 	ActualCost     float64       `bun:"type:numeric(10,2)" json:"actualCost"`
+	Profit         float64       `bun:"type:numeric(10,2)" json:"profit"`
 	Image          string        `bun:"type:text,nullzero" json:"image"`
 }
 

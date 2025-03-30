@@ -98,7 +98,16 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// 	// SameSite: http.SameSiteStrictMode,
 	// })
 
-	uDto := dtos.NewSigninRequest(user)
+	uDto := dtos.NewSigninResponse(&user)
+	if user.ProfileType == "worker" {
+		workerLessorId, err := u.GetWorkerLessor(r.Context(), &user)
+		if err != nil {
+			log.Printf("error in handler for worker data fetch %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		uDto.LessorId = workerLessorId
+	}
 
 	res := ztype.JsonResponse{
 		"accessToken": token,
@@ -247,7 +256,7 @@ func (u UserHandler) HandleSignUpWorker(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		usrDto := dtos.NewSigninResponse(user)
+		usrDto := dtos.NewWorkerSignUpResponse(user, utils.ParseUuid(payload.LessorId))
 
 		res := ztype.JsonResponse{
 			"accessToken": token,

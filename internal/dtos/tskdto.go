@@ -14,6 +14,7 @@ type TaskResponse struct {
 	Notes         string          `json:"notes"`
 	PropertyId    string          `json:"propertyId"`
 	Property      *model.Property `json:"property"`
+	Category      string          `json:"category"`
 	ScheduledAt   time.Time       `json:"scheduledAt"`
 	StartedAt     time.Time       `json:"startedAt"`
 	CompletedAt   time.Time       `json:"completedAt"`
@@ -25,6 +26,7 @@ type TaskResponse struct {
 	Worker        *model.Worker   `json:"worker"`
 	EstimatedCost float64         `json:"estimatedCost"`
 	ActualCost    float64         `json:"actualCost"`
+	Profit        float64         `json:"profit"`
 	Priority      string          `json:"priority"`
 	Image         string          `json:"image"`
 	ImageUrl      *string         `json:"imageUrl"`
@@ -43,6 +45,7 @@ func NewTaskResposne(t *model.Task, url *string) TaskResponse {
 		Notes:         t.Notes,
 		PropertyId:    t.PropertyId.String(),
 		Property:      t.Property,
+		Category:      string(t.Category),
 		ScheduledAt:   t.ScheduledAt,
 		StartedAt:     t.StartedAt,
 		CompletedAt:   t.CompletedAt,
@@ -55,6 +58,7 @@ func NewTaskResposne(t *model.Task, url *string) TaskResponse {
 		EstimatedCost: t.EstimatedCost,
 		ActualCost:    t.ActualCost,
 		Priority:      string(t.Priority),
+		Profit:        t.Profit,
 		Image:         t.Image,
 		ImageUrl:      url,
 	}
@@ -77,6 +81,7 @@ func NewTaskResposneFrmPntr(t *model.Task, url *string) TaskResponse {
 		Details:       t.Details,
 		Notes:         t.Notes,
 		PropertyId:    t.PropertyId.String(),
+		Category:      string(t.Category),
 		ScheduledAt:   t.ScheduledAt,
 		StartedAt:     t.StartedAt,
 		CompletedAt:   t.CompletedAt,
@@ -89,6 +94,7 @@ func NewTaskResposneFrmPntr(t *model.Task, url *string) TaskResponse {
 		EstimatedCost: t.EstimatedCost,
 		ActualCost:    t.ActualCost,
 		Priority:      string(t.Priority),
+		Profit:        t.Profit,
 		Image:         t.Image,
 		ImageUrl:      url,
 	}
@@ -101,10 +107,12 @@ type TaskRequest struct {
 	Details      string    `json:"details"`
 	Notes        string    `json:"notes"`
 	PropertyId   string    `json:"propertyId"`
+	Category     string    `json:"category"`
 	ScheduledAt  time.Time `json:"scheduledAt"`
 	WorkerId     string    `json:"workerId"`
 	EstimateCost float64   `json:"estimatedCost"`
 	ActualCost   float64   `json:"actualCost"`
+	Profit       float64   `json:"profit"`
 	Image        string    `json:"image"`
 	Priority     string    `json:"priority"`
 }
@@ -120,6 +128,7 @@ type TaskModRequest struct {
 	Details       string    `json:"details"`
 	Notes         string    `json:"notes"`
 	PropertyId    string    `json:"propertyId"`
+	Category      string    `json:"category"`
 	ScheduledAt   time.Time `json:"scheduledAt"`
 	StartedAt     time.Time `json:"startedAt"`
 	CompletedAt   time.Time `json:"completedAt"`
@@ -130,6 +139,7 @@ type TaskModRequest struct {
 	WorkerId      string    `json:"workerId"`
 	EstimatedCost float64   `json:"estimatedCost"`
 	ActualCost    float64   `json:"actualCost"`
+	Profit        float64   `json:"profit"`
 	Image         string    `json:"image"`
 	Priority      string    `json:"priority"`
 }

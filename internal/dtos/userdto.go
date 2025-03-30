@@ -65,13 +65,14 @@ func (u *WorkerUserSignupRequest) Validate() error {
 
 type UserSigninRequest struct {
 	Uid         string `json:"uid"`
+	LessorId    string `json:"lessorId"`
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	ProfileType string `json:"profileType"`
 	FirstName   string `json:"firstName"`
 	LastName    string `json:"lastName"`
 	IsActive    bool   `json:"isActive"`
 	Phone       string `json:"phone"`
-	Email       string `json:"email"`
-	ProfileType string `json:"profileType"`
-	Username    string `json:"username"`
 }
 
 func (u *UserSigninRequest) Validate() error {

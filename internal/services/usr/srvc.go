@@ -152,6 +152,17 @@ func (a *UserService) CreateWorker(ctx context.Context, usr *model.User, nwWorke
 	return wkr, nil
 }
 
+func (a *UserService) GetWorkerLessor(ctx context.Context, usr *model.User) (uuid.UUID, error) {
+	worker, err := a.repo.GetWorker(ctx, usr.Uid)
+
+	if err != nil {
+		log.Printf("failed to get worker data for signin %v", err)
+		return uuid.Nil, err
+	}
+
+	return worker.LessorId, nil
+}
+
 func (p UserService) GetUsrs(ctx context.Context, fltr filters.Filter) ([]model.User, error) {
 	prfls, err := p.repo.FetchAll(ctx, fltr)
 

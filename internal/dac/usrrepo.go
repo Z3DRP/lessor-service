@@ -10,6 +10,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/filters"
 	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -166,6 +167,21 @@ func (u *UserRepo) InsertWorker(ctx context.Context, worker any) (interface{}, e
 	}
 
 	return wrkr, nil
+}
+
+func (u *UserRepo) GetWorker(ctx context.Context, uid uuid.UUID) (model.Worker, error) {
+	var worker model.Worker
+	err := u.GetBunDB().NewSelect().Model(&worker).Where("? = ?", bun.Ident("uid"), uid).Scan(ctx, &worker)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Println("no rows found")
+			return model.Worker{}, ErrNoResults{Shape: worker, Identifier: uid.String(), Err: err}
+		}
+		return model.Worker{}, err
+	}
+
+	return worker, nil
 }
 
 func (u *UserRepo) Update(ctx context.Context, usr any) (interface{}, error) {

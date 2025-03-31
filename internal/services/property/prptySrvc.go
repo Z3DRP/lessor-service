@@ -177,9 +177,11 @@ func (p PropertyService) ModifyProperty(ctx context.Context, pdto *dtos.Property
 	isAddrsUpdated, err := p.isAddressDif(ctx, pdto.Pid, pdto.Address)
 
 	if err != nil {
+		log.Printf("could not compare previous address with new address %v", err)
 		return nil, fmt.Errorf("could not compare previous address with new address %v", err)
 	}
 
+	log.Printf("address was updated %v", isAddrsUpdated)
 	if isAddrsUpdated {
 		// mutates the address adding the lat and lng of addrss
 		if err = p.GeocodeAddress(pdto); err != nil {
@@ -277,6 +279,7 @@ func (p PropertyService) getExistingPropertyImage(ctx context.Context, id string
 }
 
 func (p PropertyService) getExistingAddress(ctx context.Context, id string) (model.Address, error) {
+	log.Println("fetching existing address")
 	property, err := p.repo.GetExisting(ctx, id)
 	if err != nil {
 		return model.Address{}, err
@@ -284,8 +287,10 @@ func (p PropertyService) getExistingAddress(ctx context.Context, id string) (mod
 
 	addrs, err := p.decodeAddrs(property.Address)
 	if err != nil {
+		log.Printf("failed to decode existing address %v", err)
 		return model.Address{}, err
 	}
+	log.Printf("existing address %v", addrs)
 
 	return addrs, nil
 }
@@ -293,13 +298,17 @@ func (p PropertyService) getExistingAddress(ctx context.Context, id string) (mod
 func (p PropertyService) isAddressDif(ctx context.Context, pid string, addr json.RawMessage) (bool, error) {
 	existingAddrs, err := p.getExistingAddress(ctx, pid)
 	if err != nil {
+		log.Printf("failed to get exisitn address %v", err)
 		return false, err
 	}
 
 	addrss, err := p.decodeAddrs(addr)
 	if err != nil {
+		log.Printf("failed to decode address attached to proeprty being updated %v", err)
 		return false, err
 	}
+
+	log.Printf("address attached to updated property %v", addrss)
 
 	return addrss.Street != existingAddrs.Street ||
 		addrss.City != existingAddrs.City ||

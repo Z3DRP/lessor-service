@@ -262,7 +262,6 @@ func (p PropertyHandler) HandleUpdateProperty(w http.ResponseWriter, r *http.Req
 		})
 		utils.WriteErr(w, http.StatusRequestTimeout, err)
 	default:
-		log.Printf("update ep hit")
 		var (
 			fileUpload *ztype.FileUploadDto
 			payload    *dtos.PropertyModificationRequest
@@ -326,7 +325,7 @@ func (p PropertyHandler) HandleUpdateProperty(w http.ResponseWriter, r *http.Req
 		property, err := p.ModifyProperty(r.Context(), payload, fileUpload)
 
 		if err != nil {
-			log.Printf("failed to update property")
+			log.Printf("failed to update property, %v", err)
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}

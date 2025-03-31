@@ -152,7 +152,7 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 
 func (p *PropertyRepo) GetExisting(ctx context.Context, pid string) (model.Property, error) {
 	var property model.Property
-	err := p.GetBunDB().NewSelect().Model(&property).Column("pid", "image").Where("? = ?", bun.Ident("pid"), pid).Scan(ctx, &property)
+	err := p.GetBunDB().NewSelect().Model(&property).Column("pid", "image", "address").Where("? = ?", bun.Ident("pid"), pid).Scan(ctx, &property)
 
 	if err != nil {
 		return model.Property{}, err

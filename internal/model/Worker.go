@@ -26,7 +26,7 @@ type Worker struct {
 	EndDate       time.Time       `bun:"type:timestamptz,nullzero" json:"endDate"`
 	Title         string          `bun:"type:varchar(100),nullzero" json:"title"`
 	Specilization string          `bun:"type:varchar(255),nullzero" json:"specilization"`
-	PayRate       decimal.Decimal `bun:"type:money,nullzero" json:"payRate"`
+	PayRate       decimal.Decimal `bun:"type:numeric(10,2),nullzero" json:"payRate"`
 	LessorId      uuid.UUID       `bun:"type:uuid,notnull,unique" json:"lessorId"`
 	Alessor       *Alessor        `bun:"rel:belongs-to,join:lessor_id=uid" json:"alessor"`
 	PaymentMethod MethodOfPayment `bun:"type:method_of_payment" json:"-"`

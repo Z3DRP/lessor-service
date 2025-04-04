@@ -128,14 +128,17 @@ func (a *UserService) CreateAlessor(ctx context.Context, usr *model.User) (model
 }
 
 func (a *UserService) CreateWorker(ctx context.Context, usr *model.User, nwWorker dtos.WorkerUserSignupRequest) (model.Worker, error) {
+	// TODO: update the defaults here for payrate and payment method needs to come from somwhere frontend will have to be updated
 	wrkr := model.Worker{
 		Uid:           usr.Uid,
 		StartDate:     nwWorker.StartDate,
 		Title:         nwWorker.Title,
 		LessorId:      utils.ParseUuid(nwWorker.LessorId),
 		PayRate:       nwWorker.PayRate,
-		PaymentMethod: model.MethodOfPayment(nwWorker.PaymentMethod),
+		PaymentMethod: model.MethodOfPayment(nwWorker.PaymentMethod), //default to cash payment for now
 	}
+
+	log.Printf("worker being created %v", wrkr)
 
 	worker, err := a.repo.InsertWorker(ctx, wrkr)
 

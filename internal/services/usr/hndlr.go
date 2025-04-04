@@ -17,6 +17,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -100,7 +101,8 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	uDto := dtos.NewSigninResponse(&user)
 	if user.ProfileType == "worker" {
-		workerLessorId, err := u.GetWorkerLessor(r.Context(), &user)
+		var workerLessorId uuid.UUID
+		workerLessorId, err = u.GetWorkerLessor(r.Context(), &user)
 		if err != nil {
 			log.Printf("error in handler for worker data fetch %v", err)
 			utils.WriteErr(w, http.StatusInternalServerError, err)
@@ -201,6 +203,7 @@ func (u UserHandler) HandleSignUpWorker(w http.ResponseWriter, r *http.Request) 
 		utils.WriteErr(w, http.StatusRequestTimeout, &timeoutErr)
 	default:
 		// TODO change defalting to text communication preference
+		log.Println("worker signup ep")
 		var payload dtos.WorkerUserSignupRequest
 		w.Header().Set("Content-Type", "application/json")
 

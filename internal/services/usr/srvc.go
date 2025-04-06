@@ -40,7 +40,6 @@ func (u UserService) AuthenticateUser(ctx context.Context, fltr filters.Filterer
 	if !ok {
 		return false, model.User{}, filters.NewFailedToMakeFilterErr("credential filter")
 	}
-	log.Println("auth srvc valid creds")
 
 	usr, err := u.repo.GetCredentials(ctx, credentials.Email)
 
@@ -62,8 +61,6 @@ func (u UserService) AuthenticateUser(ctx context.Context, fltr filters.Filterer
 	if err != nil {
 		return false, model.User{}, err
 	}
-
-	log.Printf("credentials match")
 
 	return isMatch, user, nil
 }
@@ -138,8 +135,10 @@ func (a *UserService) CreateWorker(ctx context.Context, usr *model.User, nwWorke
 		PaymentMethod: model.MethodOfPayment(nwWorker.PaymentMethod), //default to cash payment for now
 	}
 
-	log.Printf("worker being created %v", wrkr)
-
+	log.Println("")
+	log.Println("")
+	log.Printf("worker start date %v", wrkr.StartDate)
+	log.Println("")
 	worker, err := a.repo.InsertWorker(ctx, wrkr)
 
 	if err != nil {

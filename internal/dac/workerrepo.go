@@ -41,7 +41,7 @@ func (p *WorkerRepo) Fetch(ctx context.Context, fltr filters.Filter) (interface{
 func (p *WorkerRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Worker, error) {
 	var workers []model.Worker
 	limit := utils.DeterminRecordLimit(fltr.Limit)
-	err := p.GetBunDB().NewSelect().Model(&workers).Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &workers)
+	err := p.GetBunDB().NewSelect().Model(&workers).Relation("User").Relation("Alessor").Relation("Alessor.User").Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &workers)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

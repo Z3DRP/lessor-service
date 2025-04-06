@@ -122,7 +122,6 @@ func (wk WorkerHandler) HandleGetWorkers(w http.ResponseWriter, r *http.Request)
 		utils.WriteErr(w, http.StatusRequestTimeout, timeOutErr)
 	default:
 		fltr, err := filters.GenFilter(r)
-		log.Println("fetching workers")
 
 		if err != nil {
 			wk.logger.LogFields(logrus.Fields{"msg": "failed to generate fileter", "err": err})

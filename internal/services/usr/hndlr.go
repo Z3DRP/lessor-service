@@ -58,10 +58,8 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		utils.WriteErr(w, http.StatusBadRequest, err)
 		return
 	}
-	log.Printf("sign-in hit, %v", creds)
 
 	authenticated, user, err := u.AuthenticateUser(r.Context(), creds)
-	log.Printf("usr authenticated: %v", user)
 
 	if err != nil {
 		utils.WriteErr(w, http.StatusInternalServerError, err)
@@ -69,25 +67,19 @@ func (u UserHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("authenticated value before checking its value %v", authenticated)
-
 	if !authenticated {
 		log.Printf("usr not authenticated")
 		utils.WriteErr(w, http.StatusUnauthorized, errors.New("invalid credentials"))
 		return
 	}
 
-	log.Println("generating token")
 	token, err := auth.GenerateToken(user.Uid.String(), creds.Email, user.ProfileType)
-	log.Printf("Generating token for UID: %s, Email: %s, Role: %s", user.Uid.String(), creds.Email, user.ProfileType)
 
 	if err != nil {
 		log.Printf("error generating token %v\n", err)
 		utils.WriteErr(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	log.Printf("token generated: %v", token)
 
 	// for session based
 	// http.SetCookie(w, &http.Cookie{
@@ -168,7 +160,6 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 		}
 
 		token, err := auth.GenerateToken(user.Uid.String(), user.Email, user.ProfileType)
-		log.Printf("Generating token for UID: %s, Email: %s, Role: %s", user.Uid.String(), user.Email, user.ProfileType)
 
 		if err != nil {
 			u.logger.MustDebug(fmt.Sprintf("auth error: %v", err))
@@ -183,8 +174,6 @@ func (u UserHandler) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 			"accessToken": token,
 			"user":        usrDto,
 		}
-
-		log.Printf("returning login res: %+v", res)
 
 		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
 			u.logger.MustDebug(fmt.Sprintf("json encoding err %v", err))
@@ -241,6 +230,9 @@ func (u UserHandler) HandleSignUpWorker(w http.ResponseWriter, r *http.Request) 
 		}
 
 		// create a initial alessor profile for the user
+		log.Println("")
+		log.Println("")
+		log.Printf("payload %+v", payload)
 		_, err = u.CreateWorker(r.Context(), user, payload)
 
 		if err != nil {

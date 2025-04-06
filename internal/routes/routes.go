@@ -103,8 +103,8 @@ func registerRoutes(
 	mux.HandleFunc("PUT /rental/{id}", rpHandler.HandleUpdateRentalProperty)
 	mux.HandleFunc("DELETE /rental/{id}", rpHandler.HandleDeleteRentalProperty)
 
-	mux.HandleFunc("GET /worker/{id}", wHandler.HandleGetWorker)
 	mux.HandleFunc("POST /worker", wHandler.HandleCreateWorker)
+	mux.HandleFunc("GET /worker/{id}", wHandler.HandleGetWorker)
 	mux.HandleFunc("PUT /worker/{id}", wHandler.HandleUpdateWorker)
 	mux.HandleFunc("DELETE /worker/{id}", wHandler.HandleDeleteWorker)
 }

@@ -47,8 +47,11 @@ func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Ta
 
 	log.Printf("limit is %v", limit)
 
-	err := t.GetBunDB().NewSelect().Model(&tsks).Relation("Property").Relation("Worker").Scan(ctx, &tsks)
-
+	err := t.GetBunDB().NewSelect().Model(&tsks).Relation("Property").Relation("Alessor").Relation("Worker").Relation("Worker.User").Scan(ctx, &tsks)
+	for _, tk := range tsks {
+		log.Println("task worker data: ")
+		log.Printf("worker: %v", tk.Worker)
+	}
 	log.Printf("db err after call %v", err)
 
 	if err != nil {

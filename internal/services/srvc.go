@@ -13,7 +13,7 @@ type ErrInvalidRequest struct {
 }
 
 func (e ErrInvalidRequest) Error() string {
-	return fmt.Sprintf("invalid %v service %v request, %v", e.ServiceType, e.RequestType, e.Err)
+	return fmt.Sprintf("invalid %v service %v request", e.ServiceType, e.RequestType)
 }
 
 func (e ErrInvalidRequest) Unwrap() error {

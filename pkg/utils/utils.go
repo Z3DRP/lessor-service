@@ -81,11 +81,13 @@ func CharCount(str string) int {
 
 func ParseUuid(str string) uuid.UUID {
 	if str == "" {
+		log.Println("uuuid is empty")
 		return uuid.Nil
 	}
 
 	uid, err := uuid.Parse(str)
 	if err != nil {
+		log.Println("failed to parse uuid setting to nil")
 		return uuid.Nil
 	}
 

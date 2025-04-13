@@ -174,6 +174,8 @@ func (t TaskService) CreateTask(ctx context.Context, tdata *dtos.TaskRequest) (*
 func (t TaskService) ModifyTask(ctx context.Context, tdto *dtos.TaskModRequest) (*dtos.TaskResponse, error) {
 	tsk := newTaskFrmModRequest(tdto)
 
+	log.Printf("task being updated %+v", tsk)
+	log.Printf("task tid is %v", tsk.Tid)
 	if tsk.Tid == uuid.Nil {
 		log.Printf("could not parse task pid as uuid")
 		return nil, services.ErrInvalidRequest{ServiceType: t.ServiceName(), RequestType: "update"}

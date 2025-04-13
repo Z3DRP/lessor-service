@@ -240,6 +240,7 @@ func (t TaskHandler) HandleUpdatePriority(w http.ResponseWriter, r *http.Request
 		payload := &dtos.TaskModRequest{}
 
 		tid := r.PathValue("id")
+		log.Printf("tid from url %v", tid)
 		if tid == "" {
 			log.Println("invalid request missing tid path value")
 			utils.WriteErr(w, http.StatusBadRequest, errors.New("invalid request missing tid in url"))
@@ -251,6 +252,10 @@ func (t TaskHandler) HandleUpdatePriority(w http.ResponseWriter, r *http.Request
 			utils.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
+
+		log.Println()
+		log.Printf("task request parsed %+v", payload)
+		log.Println()
 
 		if err := payload.Validate(); err != nil {
 			log.Printf("failed to validate request")

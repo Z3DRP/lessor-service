@@ -2,6 +2,7 @@ package factories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/dac"
 	"github.com/Z3DRP/lessor-service/internal/services"
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
+	"github.com/Z3DRP/lessor-service/internal/services/notification"
 	"github.com/Z3DRP/lessor-service/internal/services/property"
 	rentalproperty "github.com/Z3DRP/lessor-service/internal/services/rentalProperty"
 	"github.com/Z3DRP/lessor-service/internal/services/task"
@@ -61,8 +63,11 @@ func ServiceFactory(serviceName string, store dac.Persister, logger *crane.Zlogr
 	case "worker":
 		repo := dac.InitWorkerRepo(store)
 		return worker.NewWorkerService(repo, logger), nil
+	case "notification":
+		repo := dac.InitNotificationRepo(store)
+		return notification.NewNotificationService(repo, logger), nil
 	default:
-		return nil, nil
+		return nil, errors.New("factory does not support service")
 	}
 }
 
@@ -104,6 +109,12 @@ func HandlerFactory(handlerName string, service services.Service) (services.Hand
 			return nil, ErrWrongServiceInject{ServiceName: service.ServiceName(), HandlerName: "worker"}
 		}
 		return worker.NewHandler(workerServer), nil
+	case "notification":
+		notificationService, ok := service.(notification.NotificationService)
+		if !ok {
+			return nil, ErrWrongServiceInject{ServiceName: notificationService.ServiceName(), HandlerName: "notification"}
+		}
+		return notification.NewHandler(notificationService), nil
 	default:
 		return nil, fmt.Errorf("handler not found for %v", handlerName)
 	}

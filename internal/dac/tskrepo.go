@@ -70,36 +70,30 @@ func (t TaskRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([]model.Ta
 
 func (t *TaskRepo) Insert(ctx context.Context, tsk any) (interface{}, error) {
 	tk, ok := tsk.(*model.Task)
-	log.Println("repo type asert passed")
 	if !ok {
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Task{}, Got: tsk}
 	}
 
 	tx, err := t.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
-		log.Printf("transaction start failed %v", err)
+		log.Printf("failed to start transaction %v", err)
 		return nil, ErrTransactionStartFailed{Err: err}
 	}
 
-	log.Println("transaction started...")
-
 	err = tx.NewInsert().Model(tk).Returning("*").Scan(ctx, tk)
 	if err != nil {
-		log.Printf("error with insert %v", err)
 		if rbErr := tx.Rollback(); rbErr != nil {
 			return nil, ErrRollbackFailed{rbErr}
 		}
 		return nil, ErrInsertFailed{Model: "Task", Err: err}
 	}
-	log.Println("insert successful")
 
 	if err = tx.Commit(); err != nil {
 		log.Printf("error committing %v", err)
 		return nil, ErrTransactionCommitFail{err}
 	}
 
-	log.Printf("returning new task frm repo %#v", tk)
-	return tk, err
+	return tk, nil
 }
 
 func (t *TaskRepo) Update(ctx context.Context, tsk any) (interface{}, error) {

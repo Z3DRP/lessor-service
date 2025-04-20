@@ -36,3 +36,7 @@ type Worker struct {
 func (w Worker) Info() string {
 	return fmt.Sprintf("%#v\n", w)
 }
+
+func FullName(u *User) string {
+	return fmt.Sprintf("%v %v", u.FirstName, u.LastName)
+}

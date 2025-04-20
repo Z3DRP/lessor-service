@@ -2,12 +2,15 @@ package task
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Z3DRP/lessor-service/internal/dac"
 	"github.com/Z3DRP/lessor-service/internal/dtos"
 	"github.com/Z3DRP/lessor-service/internal/filters"
+	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/internal/ztype"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -40,8 +43,6 @@ func (t TaskHandler) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 		if err := utils.ParseJSON(r, payload); err != nil {
 			t.logger.LogFields(logrus.Fields{"msg": "failed to parse request body", "err": err})
 			utils.WriteErr(w, http.StatusInternalServerError, err)
-			log.Printf("failed to parse request %v", err)
-			log.Printf("request body failed: %v", r.Body)
 			return
 		}
 
@@ -78,6 +79,8 @@ func (t TaskHandler) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
 			t.logger.LogFields(logrus.Fields{"msg": "faild to write json response", "err": err})
 			log.Printf("failed to write json response %v", err)
+			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
 		}
 	}
 }
@@ -162,6 +165,7 @@ func (t TaskHandler) HandleGetTasks(w http.ResponseWriter, r *http.Request) {
 
 				if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
 					utils.WriteErr(w, http.StatusInternalServerError, err)
+					return
 				}
 			}
 			log.Printf("database err failed to fetch tasks %v", err)
@@ -212,6 +216,18 @@ func (t TaskHandler) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
 			log.Printf("database error failed to update task %v", err)
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
+		}
+
+		if tskStatus := DetermineTaskStatus(task); tskStatus != model.Scheduled {
+			go func() {
+				t.CreateNotification(
+					r.Context(),
+					task.PropertyId,
+					model.TaskAlert,
+					"Task Updated",
+					fmt.Sprintf("Task %v has been updated", task.Name),
+				)
+			}()
 		}
 
 		res := ztype.JsonResponse{
@@ -272,6 +288,16 @@ func (t TaskHandler) HandleUpdatePriority(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		go func() {
+			t.CreateNotification(
+				r.Context(),
+				task.PropertyId,
+				model.TaskAlert,
+				"Task Updated",
+				fmt.Sprintf("Task %v priority has been changed to %v", task.Name, task.Priority),
+			)
+		}()
+
 		res := ztype.JsonResponse{
 			"task":    task,
 			"success": true,
@@ -325,6 +351,16 @@ func (t TaskHandler) HandleAssignTask(w http.ResponseWriter, r *http.Request) {
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 			return
 		}
+
+		go func() {
+			t.CreateNotification(
+				r.Context(),
+				task.PropertyId,
+				model.TaskAlert,
+				"Task Assigned",
+				fmt.Sprintf("Task %v has been assigned to %v", task.Name, model.FullName(task.Worker.User)),
+			)
+		}()
 
 		res := ztype.JsonResponse{
 			"task":    task,
@@ -582,4 +618,28 @@ func (t TaskHandler) HandleDeleteTask(w http.ResponseWriter, r *http.Request) {
 			utils.WriteErr(w, http.StatusInternalServerError, err)
 		}
 	}
+}
+
+func DetermineTaskStatus(t *dtos.TaskResponse) model.TaskStatus {
+	if isNotZero(t.FailedAt) {
+		return model.Failed
+	}
+
+	if isNotZero(t.PausedAt) {
+		return model.Paused
+	}
+
+	if isNotZero(t.CompletedAt) {
+		return model.Finished
+	}
+
+	if isNotZero(t.StartedAt) {
+		return model.Started
+	}
+
+	return model.Scheduled
+}
+
+func isNotZero(t time.Time) bool {
+	return !time.Time.IsZero(t)
 }

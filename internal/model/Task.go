@@ -10,6 +10,7 @@ import (
 
 type PriorityLevel string
 type TaskCategory string
+type TaskStatus string
 
 const (
 	Low                PriorityLevel = "low"
@@ -23,6 +24,11 @@ const (
 	ClientService      TaskCategory  = "client_service"
 	ClientInstallation TaskCategory  = "client_installation"
 	ClientProject      TaskCategory  = "project"
+	Scheduled          TaskStatus    = "scheduled"
+	Started            TaskStatus    = "started"
+	Finished           TaskStatus    = "finished"
+	Paused             TaskStatus    = "paused"
+	Failed             TaskStatus    = "failed"
 )
 
 type Task struct {

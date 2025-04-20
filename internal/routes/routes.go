@@ -14,6 +14,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/crane"
 	"github.com/Z3DRP/lessor-service/internal/middlewares"
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
+	"github.com/Z3DRP/lessor-service/internal/services/notification"
 	"github.com/Z3DRP/lessor-service/internal/services/property"
 	rentalproperty "github.com/Z3DRP/lessor-service/internal/services/rentalProperty"
 	"github.com/Z3DRP/lessor-service/internal/services/task"
@@ -31,10 +32,20 @@ func NewServer(
 	taskHndlr task.TaskHandler,
 	rentalPropertyHndlr rentalproperty.RentalPropertyHandler,
 	workerHndlr worker.WorkerHandler,
+	notificationHndlr notification.NotificationHandler,
 ) (*http.Server, error) {
 
 	mux := http.NewServeMux()
-	registerRoutes(mux, alessorHndlr, usrHndlr, propertyHndlr, taskHndlr, rentalPropertyHndlr, workerHndlr)
+	registerRoutes(
+		mux,
+		alessorHndlr,
+		usrHndlr,
+		propertyHndlr,
+		taskHndlr,
+		rentalPropertyHndlr,
+		workerHndlr,
+		notificationHndlr,
+	)
 
 	mwChain := middlewares.MiddlewareChain(handlePanic, loggerMiddleware, headerMiddleware, contextMiddleware)
 	server := &http.Server{
@@ -55,6 +66,7 @@ func registerRoutes(
 	tHandler task.TaskHandler,
 	rpHandler rentalproperty.RentalPropertyHandler,
 	wHandler worker.WorkerHandler,
+	nHandler notification.NotificationHandler,
 ) {
 	mux.HandleFunc("POST /sign-in", uHandler.HandleLogin)
 	mux.HandleFunc("POST /sign-up", uHandler.HandleSignUp)
@@ -67,6 +79,7 @@ func registerRoutes(
 	mux.HandleFunc("DELETE /alessor/{id}", aHandler.HandleDeleteAlessor)
 	mux.HandleFunc("GET /alessor/{id}/task", tHandler.HandleGetTasks)
 	mux.HandleFunc("GET /alessor/{id}/worker", wHandler.HandleGetWorkers)
+	mux.HandleFunc("GET /alessor/{id}/notifications", nHandler.HandleGetNotifications)
 	// need to add this and remove from below and change to property
 	//mux.HandleFunc("GET alessor/{id}/property", pHandler.HandleGetProperties)
 
@@ -107,6 +120,9 @@ func registerRoutes(
 	mux.HandleFunc("GET /worker/{id}", wHandler.HandleGetWorker)
 	mux.HandleFunc("PUT /worker/{id}", wHandler.HandleUpdateWorker)
 	mux.HandleFunc("DELETE /worker/{id}", wHandler.HandleDeleteWorker)
+
+	mux.HandleFunc("POST /notifications", nHandler.HandleCreateNotification)
+	mux.HandleFunc("PATCH /notifications/{id}", nHandler.HandleUpdateViewed)
 }
 
 // make this unexported after jwt in use
@@ -146,7 +162,7 @@ func headerMiddleware(next http.Handler) http.HandlerFunc {
 
 		if config.IsValidOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		}
 

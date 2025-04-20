@@ -2,10 +2,13 @@ package dac
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Z3DRP/lessor-service/internal/filters"
 )
+
+var ErrSqlNoData = errors.New("query returned no roles")
 
 type Fetcher interface {
 	Fetch(context.Context, filters.Filterer) (interface{}, error)

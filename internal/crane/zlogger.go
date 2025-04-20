@@ -25,6 +25,8 @@ const (
 	LogName   = "logs.log"
 )
 
+type Zfields map[string]any
+
 func (l LogLevel) String() string {
 	return [...]string{"Trace", "Debug", "Info", "Warn", "Error", "Fatal", "Panic"}[l]
 }
@@ -125,6 +127,16 @@ func (z Zlogrus) MustPanic(msg string) {
 
 func (z Zlogrus) LogFields(fields logrus.Fields) {
 	z.logger.WithFields(fields).Debug()
+}
+
+func (z Zlogrus) Zlog(fields Zfields) {
+	lfs := logrus.Fields{}
+	for fieldName, value := range fields {
+		if _, exists := lfs[fieldName]; !exists {
+			lfs[fieldName] = value
+		}
+	}
+	z.logger.WithFields(lfs)
 }
 
 func initLogger() *Zlogrus {

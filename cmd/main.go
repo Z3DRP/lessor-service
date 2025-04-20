@@ -13,6 +13,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/factories"
 	"github.com/Z3DRP/lessor-service/internal/routes"
 	"github.com/Z3DRP/lessor-service/internal/services/alssr"
+	"github.com/Z3DRP/lessor-service/internal/services/notification"
 	"github.com/Z3DRP/lessor-service/internal/services/prfl"
 	"github.com/Z3DRP/lessor-service/internal/services/property"
 	rentalproperty "github.com/Z3DRP/lessor-service/internal/services/rentalProperty"
@@ -100,6 +101,13 @@ func run() error {
 		return factories.ErrFailedServiceStart{ServiceName: workerService.ServiceName(), Err: err}
 	}
 
+	notificationService, _ := factories.ServiceFactory("Notification", dbStore, crane.DefaultLogger)
+	notificationHandler, err := factories.HandlerFactory(notificationService.ServiceName(), notificationService)
+	if err != nil {
+		log.Printf("notification handler err %v", err)
+		return factories.ErrFailedServiceStart{ServiceName: notificationService.ServiceName(), Err: err}
+	}
+
 	aHandler, ok := alsrHandler.(alssr.AlessorHandler)
 	if !ok {
 		return cmerr.ErrUnexpectedData{Wanted: alssr.AlessorHandler{}, Got: alsrHandler}
@@ -130,7 +138,12 @@ func run() error {
 		return cmerr.ErrUnexpectedData{Wanted: worker.WorkerHandler{}, Got: wHandler}
 	}
 
-	zserver, err := routes.NewServer(&apiConfig.ZServer, aHandler, uHandler, pHandler, tHandler, rpHandler, wHandler)
+	nHandler, ok := notificationHandler.(notification.NotificationHandler)
+	if !ok {
+		return cmerr.ErrUnexpectedData{Wanted: notification.NotificationHandler{}, Got: notificationHandler}
+	}
+
+	zserver, err := routes.NewServer(&apiConfig.ZServer, aHandler, uHandler, pHandler, tHandler, rpHandler, wHandler, nHandler)
 	if err != nil {
 		crane.DefaultLogger.MustDebug(fmt.Sprintf("fatal error creating server, %v", err))
 		return err

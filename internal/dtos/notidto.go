@@ -62,10 +62,31 @@ func NewNotificationDto(n model.Notification) *NotificationDto {
 	}
 }
 
-func NewNotificationDtoList(n []model.Notification) []*NotificationDto {
-	responses := make([]*NotificationDto, len(n))
+func GenNotificationDto(n model.Notification) NotificationDto {
+	return NotificationDto{
+		Id:         n.Id,
+		Title:      n.Title,
+		Message:    n.Message,
+		LessorId:   n.LessorId.String(),
+		TaskId:     n.TaskId.String(),
+		Task:       n.Task,
+		UserId:     n.UserId.String(),
+		User:       n.User,
+		PropertyId: n.PropertyId.String(),
+		Property:   n.Property,
+		Category:   string(n.Category),
+		Viewed:     n.Viewed,
+		CreatedAt:  n.CreatedAt,
+		VoidAt:     n.VoidAt,
+	}
+}
+
+func NewNotificationDtoList(n []model.Notification) []NotificationDto {
+	responses := make([]NotificationDto, 0, len(n))
 	for _, noti := range n {
-		responses = append(responses, NewNotificationDto(noti))
+		responses = append(responses, GenNotificationDto(noti))
+		// if noti.Id != 0 {
+		// }
 	}
 	return responses
 }

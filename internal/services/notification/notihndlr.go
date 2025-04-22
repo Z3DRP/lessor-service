@@ -97,7 +97,7 @@ func (n NotificationHandler) HandleGetNotifications(w http.ResponseWriter, r *ht
 
 		res := ztype.JsonResponse{
 			"notifications": nofi,
-			"success":       true,
+			"status":        http.StatusOK,
 		}
 
 		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {

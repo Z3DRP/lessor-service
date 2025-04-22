@@ -354,41 +354,49 @@ func (t TaskService) DeleteTask(ctx context.Context, f filters.Filterer) error {
 	return nil
 }
 
-func (t TaskService) CreateNotification(ctx context.Context, pid string, category model.NotificationType, title, message string) {
+func (t TaskService) CreateNotification(ctx context.Context, lessorId, pid string, category model.NotificationType, title, message string) error {
 	noti := model.Notification{
 		Title:      title,
 		Message:    message,
+		UserId:     utils.ParseUuid(lessorId),
 		PropertyId: utils.ParseUuid(pid),
 		Category:   model.TaskAlert,
 		Viewed:     false,
+		CreatedAt:  time.Now(),
+		VoidAt:     time.Now().AddDate(0, 0, model.TtlDays),
 	}
 
 	tx, err := t.repo.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
+		log.Printf("err %v", err)
 		t.logger.Zlog(map[string]interface{}{
 			"msg": "failed to create notification",
 			"err": err,
 		})
-		return
+		return err
 	}
 
-	if err = tx.NewInsert().Model(noti).Returning("*").Scan(ctx, &noti); err != nil {
+	if err = tx.NewInsert().Model(&noti).Returning("*").Scan(ctx, &noti); err != nil {
+		log.Printf("err %v", err)
 		if err = tx.Rollback(); err != nil {
+			log.Printf("err %v", err)
 			t.logger.Zlog(map[string]interface{}{
 				"msg": "could not rollback notification",
 				"err": err,
 			})
-			return
+			return err
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
+		log.Printf("err %v", err)
 		t.logger.Zlog(map[string]interface{}{
 			"msg": "could not commit notification",
 			"err": err,
 		})
-		return
+		return err
 	}
+	return nil
 }
 
 func NewTaskFrmRequest(data dtos.TaskRequest) *model.Task {

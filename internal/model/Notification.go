@@ -8,6 +8,8 @@ import (
 	"github.com/uptrace/bun"
 )
 
+const TtlDays = 3
+
 type NotificationType string
 
 const (
@@ -21,7 +23,7 @@ const (
 
 type Notification struct {
 	bun.BaseModel `bun:"table:notifications,alias:notif"`
-	Id            int              `bun:"column:id,ok,autoincrement" json:"-"`
+	Id            int              `bun:"column:id,pk,autoincrement" json:"-"`
 	Title         string           `bun:"type:varchar(100),notnull," json:"title"`
 	Message       string           `bun:"type:varchar(255),notnull," json:"message"`
 	LessorId      uuid.UUID        `bun:"type:uuid,notnull,nullzero" json:"lessorId"`

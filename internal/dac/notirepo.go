@@ -13,8 +13,6 @@ import (
 	"github.com/uptrace/bun"
 )
 
-const ttlDays = 3
-
 type NotificationRepo struct {
 	Persister
 	Limit int
@@ -48,8 +46,13 @@ func (n *NotificationRepo) FetchAll(ctx context.Context, fltr filters.Filter) ([
 	limit := utils.DeterminRecordLimit(fltr.Limit)
 
 	err := n.GetBunDB().NewSelect().Model(&notifs).
-		Where("? = ?", bun.Ident("lessor_id"), fltr.Identifier).Where("not viewed").Where("void_at > ?", time.Now()).Relation("User").
+		Where("? = ?", bun.Ident("notif.user_id"), fltr.Identifier).Where("void_at > ?", time.Now()).Where("not viewed").Relation("User").
 		Relation("Property").Relation("Task").Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &notifs)
+
+	// query := n.GetBunDB().NewSelect().Model(&notifs).
+	// 	Where("? = ?", bun.Ident("notif.user_id"), fltr.Identifier).Where("void_at > ?", time.Now()).Where("not viewed").Relation("User").
+	// 	Relation("Property").Relation("Task").Limit(limit).Offset(10*(fltr.Page-1)).Scan(ctx, &notifs)
+	// fmt.Println(query.String())
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -67,7 +70,7 @@ func (n *NotificationRepo) Insert(ctx context.Context, notif any) (interface{}, 
 		return nil, cmerr.ErrUnexpectedData{Wanted: model.Notification{}, Got: notif}
 	}
 
-	noti.VoidAt = time.Now().AddDate(0, 0, ttlDays)
+	noti.VoidAt = time.Now().AddDate(0, 0, model.TtlDays)
 
 	tx, err := n.GetBunDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {

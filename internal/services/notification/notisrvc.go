@@ -53,8 +53,8 @@ func (n NotificationService) GetNotification(ctx context.Context, fltr filters.F
 
 // TODO: need to parse lessorIds out of notification get requests
 
-func (n NotificationService) GetNotifications(ctx context.Context, fltr filters.Filterer) ([]*dtos.NotificationDto, error) {
-	var response []*dtos.NotificationDto
+func (n NotificationService) GetNotifications(ctx context.Context, fltr filters.Filterer) ([]dtos.NotificationDto, error) {
+	var response []dtos.NotificationDto
 	filter, ok := fltr.(filters.Filter)
 
 	if !ok {
@@ -64,7 +64,7 @@ func (n NotificationService) GetNotifications(ctx context.Context, fltr filters.
 	notifs, err := n.repo.FetchAll(ctx, filter)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return make([]*dtos.NotificationDto, 0), nil
+			return make([]dtos.NotificationDto, 0), nil
 		}
 		return nil, err
 	}

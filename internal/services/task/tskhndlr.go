@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -218,17 +219,33 @@ func (t TaskHandler) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if tskStatus := DetermineTaskStatus(task); tskStatus != model.Scheduled {
-			go func() {
-				t.CreateNotification(
-					r.Context(),
-					task.PropertyId,
-					model.TaskAlert,
-					"Task Updated",
-					fmt.Sprintf("Task %v has been updated", task.Name),
-				)
-			}()
+		log.Printf("task status updated to %v", DetermineTaskStatus(task))
+		log.Println("")
+		log.Println("")
+		log.Println("")
+		log.Println("calling from handleUpdateTask")
+
+		if err = t.CreateNotification(
+			context.TODO(),
+			task.LessorId,
+			task.PropertyId,
+			model.TaskAlert,
+			"Task Updated",
+			fmt.Sprintf("Task %v has been updated", task.Name),
+		); err != nil {
+			log.Printf("error in notification update call %v", err)
 		}
+		// if tskStatus := DetermineTaskStatus(task); tskStatus != model.Scheduled {
+		// 	go func() {
+		// 		t.CreateNotification(
+		// 			context.TODO(),
+		// 			task.PropertyId,
+		// 			model.TaskAlert,
+		// 			"Task Updated",
+		// 			fmt.Sprintf("Task %v has been updated", task.Name),
+		// 		)
+		// 	}()
+		// }
 
 		res := ztype.JsonResponse{
 			"task":    task,
@@ -289,13 +306,20 @@ func (t TaskHandler) HandleUpdatePriority(w http.ResponseWriter, r *http.Request
 		}
 
 		go func() {
-			t.CreateNotification(
-				r.Context(),
+			if err = t.CreateNotification(
+				context.Background(),
+				task.LessorId,
 				task.PropertyId,
 				model.TaskAlert,
 				"Task Updated",
 				fmt.Sprintf("Task %v priority has been changed to %v", task.Name, task.Priority),
-			)
+			); err != nil {
+				log.Printf("error creating notification %v", err)
+				t.logger.Zlog(map[string]interface{}{
+					"msg": "failed to crete notification",
+					"err": err,
+				})
+			}
 		}()
 
 		res := ztype.JsonResponse{
@@ -353,13 +377,20 @@ func (t TaskHandler) HandleAssignTask(w http.ResponseWriter, r *http.Request) {
 		}
 
 		go func() {
-			t.CreateNotification(
+			if err = t.CreateNotification(
 				r.Context(),
+				task.LessorId,
 				task.PropertyId,
 				model.TaskAlert,
 				"Task Assigned",
 				fmt.Sprintf("Task %v has been assigned to %v", task.Name, model.FullName(task.Worker.User)),
-			)
+			); err != nil {
+				log.Printf("failed to create notification %v", err)
+				t.logger.Zlog(map[string]interface{}{
+					"msg": "failed to create notification",
+					"err": err,
+				})
+			}
 		}()
 
 		res := ztype.JsonResponse{

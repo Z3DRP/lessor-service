@@ -3,6 +3,7 @@ package dac
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 
 	"github.com/Z3DRP/lessor-service/internal/cmerr"
@@ -10,6 +11,7 @@ import (
 	"github.com/Z3DRP/lessor-service/internal/model"
 	"github.com/Z3DRP/lessor-service/pkg/utils"
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/driver/pgdriver"
 )
 
 type PropertyRepo struct {
@@ -136,12 +138,23 @@ func (p *PropertyRepo) Delete(ctx context.Context, prpty any) error {
 	}
 
 	_, err = tx.NewDelete().Model(&property).Where("? = ?", bun.Ident("pid"), property.Pid).Exec(ctx)
-
 	if err != nil {
+		var pgErr pgdriver.Error
+		var sqlErr error
+		if errors.As(err, &pgErr) {
+			if pgErr.IntegrityViolation() {
+				//if pgErr.Field('C') == "23503" {
+				//	log.Printf("property cannot be deleted because of pending tasks, %v", pgErr.Error())
+				//	sqlErr = fmt.Errorf("property cannot be deleted because of pending tasks, %v", pgErr.Error())
+				//	//sqlErr = ErrIntegrityViolation
+				//}
+				sqlErr = errors.New("property cannot be deleted because of depending tasks or tenants")
+			}
+		}
 		if err = tx.Rollback(); err != nil {
 			return err
 		}
-		return ErrDeleteFailed{Model: "User", Err: err}
+		return sqlErr
 	}
 
 	if err = tx.Commit(); err != nil {

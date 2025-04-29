@@ -359,6 +359,7 @@ func (p *PropertyHandler) HandleDeleteProperty(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			log.Printf("error deleting property: %v", err)
 			utils.WriteErr(w, http.StatusInternalServerError, err)
+			return
 		}
 
 		res := ztype.JsonResponse{

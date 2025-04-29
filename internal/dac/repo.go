@@ -9,6 +9,7 @@ import (
 )
 
 var ErrSqlNoData = errors.New("query returned no roles")
+var ErrIntegrityViolation = errors.New("integrity error")
 
 type Fetcher interface {
 	Fetch(context.Context, filters.Filterer) (interface{}, error)

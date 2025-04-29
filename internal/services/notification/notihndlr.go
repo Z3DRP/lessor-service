@@ -137,7 +137,7 @@ func (n NotificationHandler) HandleUpdateViewed(w http.ResponseWriter, r *http.R
 
 		res := ztype.JsonResponse{
 			"notification": noti,
-			"success":      true,
+			"status":       http.StatusOK,
 		}
 
 		if err = utils.WriteJSON(w, http.StatusOK, res); err != nil {
